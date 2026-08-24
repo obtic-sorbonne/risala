@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:id="[folder_id]_[letter_id]" xml:lang="[ar|fr]">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+        <title>Letter [letter_id] — Folder [folder_id]</title>
+      </titleStmt>
+      <publicationStmt>
+        <p>Larzac internment camp correspondence (1961–1962)</p>
+      </publicationStmt>
+      <sourceDesc>
+        <msDesc>
+          <msIdentifier>
+            <idno type="folder_id">[folder_id]</idno>
+            <idno type="letter_id">[letter_id]</idno>
+            <idno type="page_labels">[L1_ENV_1.jpg...]</idno>
+          </msIdentifier>
+        </msDesc>
+      </sourceDesc>
+    </fileDesc>
+    <profileDesc>
+      <correspDesc>
+        <correspAction type="sent">
+          <persName>[sender_name]</persName>
+          <placeName>[sender_place]</placeName>
+          <date when="[YYYY-MM-DD]" cert="[high|low|unknown]"/>
+        </correspAction>
+        <correspAction type="received">
+          <persName>[recipient_name]</persName>
+          <idno type="inmate_id">[inmate_id]</idno>
+          <placeName>[recipient_place]</placeName>
+          <date when="[YYYY-MM-DD]" cert="[high|low|unknown]"/>
+        </correspAction>
+      </correspDesc>
+      <langUsage>
+        <language ident="[ar|fr]"/>
+      </langUsage>
+    </profileDesc>
+  </teiHeader>
+  <text>
+    <body>
+      <div type="letter">
+        <p xml:lang="[ar|fr]">[transcription]</p>
+      </div>
+    </body>
+  </text>
+</TEI>

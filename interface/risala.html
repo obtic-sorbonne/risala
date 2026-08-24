@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correspondence Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<style>
+:root {
+  --bg:    #e8f0f8;
+  --bg2:   #f2f7fc;
+  --bg3:   #dce8f4;
+  --n3:    #b0cce4;
+  --n4:    #3a5a78;
+  --steel: #0a1e36;
+  --st2:   #0f2d52;
+  --sky:   #0f2d52;
+  --sky2:  #020b14;
+  --red:   #7a0e0e;
+  --mono: 'Segoe UI', Arial, sans-serif;	
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--sky2);font-family:var(--mono);font-size:16px;line-height:1.5;overflow:hidden;}
+.app{display:flex;flex-direction:row;height:100vh;}
+.right-col{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+/* ── HEADER ── */
+header{background:var(--bg2);border-bottom:1px solid var(--n3);display:flex;align-items:center;gap:.9rem;padding:0 1.1rem;height:54px;flex-shrink:0;position:relative;}
+
+.logo{font-family:var(--mono);font-size:.83rem;font-weight:999;color:var(--sky2);white-space:nowrap;letter-spacing:.04em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;}
+.logo span{display:block;font-size:.42rem;color:var(--steel);letter-spacing:.18em;font-weight:400;}
+.sep{width:1px;height:30px;background:var(--n3);flex-shrink:0;}
+.srow{flex:1;display:flex;align-items:center;gap:.5rem;max-width:600px;}
+.sbox{flex:1;display:flex;align-items:center;background:var(--bg);border:1px solid var(--n3);height:34px;transition:border-color .15s;}
+.sbox:focus-within{border-color:var(--steel);}
+.sbox input{flex:1;background:transparent;border:none;outline:none;color:var(--sky2);font-family:var(--mono);font-size:.72rem;padding:0 .55rem;}
+.sbox input::placeholder{color:var(--n4);}
+.sbox button{background:var(--n3);border:none;border-left:1px solid var(--n4);color:var(--sky);font-family:var(--mono);font-size:.6rem;padding:0 .55rem;height:100%;cursor:pointer;letter-spacing:.08em;transition:background .15s;}
+.sbox button:hover{background:var(--n4);color:var(--sky2);}
+.btn-ai{background:transparent;border:1px dashed var(--n4);color:var(--steel);font-family:var(--mono);font-size:.62rem;padding:0 .65rem;height:34px;cursor:pointer;letter-spacing:.08em;white-space:nowrap;display:flex;align-items:center;gap:.35rem;transition:all .15s;}
+.btn-ai:hover{border-color:var(--steel);color:var(--sky);}
+.btn-guide{background:transparent;border:1px solid var(--n3);color:var(--steel);font-family:var(--mono);font-size:.62rem;padding:0 .75rem;height:28px;cursor:pointer;letter-spacing:.1em;margin-left:auto;transition:all .15s;}
+.btn-guide:hover{border-color:var(--steel);background:rgba(26,58,92,.06);}
+.hstat{font-size:.62rem;color:var(--n4);white-space:nowrap;margin-left:auto;}
+.hstat strong{color:var(--sky);}
+
+/* ── LAYOUT ── */
+.body{flex:1;display:flex;overflow:hidden;min-height:0;position:relative;}
+
+/* ── SIDEBAR ── */
+aside{width:230px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--n3);overflow-y:auto;display:flex;flex-direction:column;align-self:stretch;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--n3);}
+::-webkit-scrollbar-thumb:hover{background:var(--n4);}
+.sh{padding:.4rem .85rem;border-bottom:1px solid var(--n3);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg2);z-index:5;}
+.sl{font-size:.58rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#020b14;}
+.breset{background:none;border:1px solid var(--n3);color:var(--n4);font-family:var(--mono);font-size:.52rem;padding:.13rem .38rem;cursor:pointer;letter-spacing:.06em;transition:all .15s;}
+.breset:hover{border-color:var(--red);color:var(--red);}
+.fblock{border-bottom:1px solid var(--n3);}
+.ftog{width:100%;background:none;border:none;display:flex;justify-content:space-between;align-items:center;padding:.38rem .85rem;cursor:pointer;color:#020b14;font-family:var(--mono);font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;transition:background .15s;}
+.ftog:hover{background:rgba(26,58,92,.05);}
+.farr{transition:transform .2s;}
+.farr.open{transform:rotate(90deg);}
+.fbody{padding:.28rem .85rem .45rem;display:flex;flex-direction:column;gap:2px;}
+.fbody.hidden,.slider-inner.hidden{display:none;}
+.fi{display:flex;align-items:center;gap:.45rem;padding:.12rem .18rem;cursor:pointer;border-radius:1px;transition:background .1s;}
+.fi:hover{background:rgba(26,58,92,.05);}
+.fi input{accent-color:var(--steel);cursor:pointer;width:10px;height:10px;}
+.fn{flex:1;font-size:.68rem;color:var(--sky);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fc{font-size:.56rem;color:var(--n4);min-width:20px;text-align:right;}
+.fc.on{color:var(--st2);}
+.slider-inner{padding:.28rem .85rem .6rem;}
+/* ── TIME SLIDER (dual-range) ── */
+.time-slider-labels{display:flex;justify-content:space-between;font-size:.58rem;color:var(--steel);margin-bottom:.4rem;letter-spacing:.04em;}
+.time-slider-track{position:relative;height:4px;background:var(--n3);border-radius:2px;margin:.7rem 0 .9rem;}
+.time-slider-range{position:absolute;height:100%;background:var(--steel);border-radius:2px;pointer-events:none;}
+.slider-inner input[type=range]{position:absolute;top:50%;width:100%;transform:translateY(-50%);appearance:none;-webkit-appearance:none;background:transparent;pointer-events:none;height:16px;margin:0;z-index:1;}
+.slider-inner input[type=range]:focus{outline:none;}
+.slider-inner input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--steel);border:2px solid var(--bg2);cursor:pointer;pointer-events:all;box-shadow:0 1px 4px rgba(0,0,0,.22);transition:background .12s,transform .12s;}
+.slider-inner input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--steel);border:2px solid var(--bg2);cursor:pointer;pointer-events:all;box-shadow:0 1px 4px rgba(0,0,0,.22);}
+.slider-inner input[type=range]::-webkit-slider-thumb:hover{background:var(--n4);transform:scale(1.15);}
+.slider-inner input[type=range]:active{z-index:2;}
+
+/* ── MAIN ── */
+main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.tabbar{display:flex;background:var(--bg2);border-bottom:1px solid var(--n3);flex-shrink:0;}
+.tbtn{background:none;border:none;border-right:1px solid var(--n3);padding:0 1rem;height:40px;font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#020b14;cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:all .15s;position:relative;}
+.tbtn:hover{background:rgba(26,58,92,.05);color:#020b14;}
+.tbtn.active{color:#020b14;background:var(--bg);}
+.tbtn.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--steel);}
+.pane{display:none;flex:1;overflow:hidden;flex-direction:column;min-height:0;}
+.pane.active{display:flex;}
+.rbar{padding:.28rem .9rem;background:var(--bg2);border-bottom:1px solid var(--n3);font-size:.58rem;color:var(--n4);display:flex;align-items:center;gap:.5rem;flex-shrink:0;letter-spacing:.04em;}
+.rbar strong{color:var(--st2);font-size:.72rem;}
+.rscroll{flex:1;overflow-y:auto;padding:.45rem;display:flex;flex-direction:column;gap:.3rem;}
+.lcard{background:var(--bg2);border:1px solid var(--n3);border-left:3px solid var(--n3);padding:.5rem .75rem;cursor:pointer;transition:all .15s;position:relative;}
+.lcard:hover{border-left-color:var(--steel);background:rgba(26,58,92,.04);}
+.lcard.active-card{border-left-color:var(--steel);background:rgba(26,58,92,.07);}
+.ctop{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;margin-bottom:.18rem;}
+.croute{font-size:.76rem;color:var(--sky2);font-weight:600;letter-spacing:.02em;}
+.croute .arr{color:var(--steel);}
+.cdate{font-size:.6rem;color:var(--n4);white-space:nowrap;}
+.cplc{font-size:.63rem;color:var(--n4);margin-bottom:.18rem;}
+.cplc span{color:var(--steel);}
+.ctxt{font-size:.7rem;color:var(--st2);border-left:2px solid var(--n3);padding-left:.38rem;margin-bottom:.28rem;}
+.ctags{display:flex;flex-wrap:wrap;gap:.18rem;}
+.tag{font-size:.56rem;padding:.08rem .38rem;border:1px solid;cursor:pointer;transition:opacity .15s;}
+.tag:hover{opacity:.7;}
+.tp{background:rgba(26,58,92,.08);border-color:#b0cce4;color:#1a3a5c;}
+.tl{background:rgba(20,90,50,.08);border-color:#90c0a0;color:#1a5a30;}
+.to{background:rgba(160,100,10,.08);border-color:#c8a860;color:#7a4808;}
+.cid{position:absolute;top:.32rem;right:.48rem;font-size:.53rem;color:var(--n3);letter-spacing:.04em;}
+#net-el{width:100%;}#map-el{width:100%;height:100%;}
+#pane-tl{flex-direction:column;}
+#pane-wc{flex-direction:column;}
+#wc-canvas{max-width:100%;max-height:100%;display:block;}
+.vleg{position:absolute;top:.75rem;right:.75rem;background:rgba(242,247,252,.96);border:1px solid var(--n3);padding:.45rem .7rem;font-size:.58rem;z-index:20;backdrop-filter:blur(4px);}
+.vleg h4{color:var(--steel);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.3rem;font-size:.56rem;}
+.lrow{display:flex;align-items:center;gap:.38rem;color:var(--sky);margin-bottom:.18rem;}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.45rem;color:var(--n3);text-align:center;padding:2rem;}
+.empty-ico{font-size:1.8rem;}
+.empty p{font-size:.68rem;letter-spacing:.06em;}
+
+/* ── DRAWER ── */
+.drawer{position:absolute;top:0;right:0;bottom:0;width:480px;background:var(--bg2);border-left:1px solid var(--n3);transform:translateX(100%);transition:transform .22s ease;z-index:50;display:flex;flex-direction:column;overflow:hidden;}
+.drawer.open{transform:translateX(0);}
+.dhead{background:var(--bg);border-bottom:1px solid var(--n3);padding:.5rem .9rem;display:flex;align-items:center;gap:.6rem;flex-shrink:0;}
+.did{font-size:.62rem;color:var(--steel);letter-spacing:.1em;flex:1;}
+.dviews{display:flex;gap:2px;background:var(--bg3);padding:2px;border-radius:3px;}
+.dview-btn{background:none;border:none;color:var(--n4);font-family:var(--mono);font-size:.58rem;padding:.2rem .55rem;cursor:pointer;letter-spacing:.06em;transition:all .15s;border-radius:2px;white-space:nowrap;}
+.dview-btn:hover{color:var(--steel);}
+.dview-btn.active{background:var(--bg2);color:var(--sky2);border:1px solid var(--n3);}
+.dclo{background:none;border:1px solid var(--n3);color:var(--n4);font-family:var(--mono);font-size:.7rem;padding:.15rem .45rem;cursor:pointer;transition:all .15s;line-height:1;margin-left:.3rem;}
+.dclo:hover{border-color:var(--red);color:var(--red);}
+.dbody{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;}
+/* Côte à côte */
+.d-split{display:flex;flex:1;overflow:hidden;gap:0;}
+.d-col-text{flex:1;overflow-y:auto;padding:.8rem;border-right:1px solid var(--n3);}
+.d-col-img{flex:1;overflow-y:auto;padding:.8rem;background:var(--bg3);}
+/* Texte seul */
+.d-full-text{flex:1;overflow-y:auto;padding:.9rem;}
+/* Image seule */
+.d-full-img{flex:1;overflow-y:auto;padding:.9rem;background:var(--bg3);}
+/* shared text blocks */
+.dmeta{display:flex;flex-direction:column;gap:.35rem;margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--n3);}
+.droute{font-size:.85rem;font-weight:600;color:var(--sky2);}
+.droute .arr{color:var(--steel);}
+.dmrow{display:flex;gap:.5rem;font-size:.63rem;}
+.dmrow .dlabel{color:var(--n4);min-width:58px;letter-spacing:.05em;}
+.dmrow .dval{color:var(--steel);}
+.dtxt-block{margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--n3);}
+.dtxt-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.12em;color:var(--n4);margin-bottom:.3rem;}
+.dtxt{font-size:.76rem;color:var(--sky2);line-height:1.7;border-left:2px solid var(--n3);padding-left:.55rem;}
+.dents{display:flex;flex-direction:column;gap:.5rem;}
+.dent-label{font-size:.55rem;text-transform:uppercase;letter-spacing:.12em;color:var(--n4);margin-bottom:.25rem;}
+.dent-tags{display:flex;flex-wrap:wrap;gap:.22rem;}
+.dtag{font-size:.63rem;padding:.12rem .45rem;border:1px solid;cursor:pointer;transition:all .15s;font-family:var(--mono);}
+.dtag:hover{opacity:.7;}
+.dtag-p{background:rgba(26,58,92,.1);border-color:#b0cce4;color:#1a3a5c;}
+.dtag-l{background:rgba(20,90,50,.1);border-color:#90c0a0;color:#1a5a30;}
+.dtag-o{background:rgba(160,100,10,.1);border-color:#c8a860;color:#7a4808;}
+/* Facsimilé placeholder */
+.d-fac{width:100%;border:1px dashed var(--n3);background:var(--bg2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;padding:1.5rem;border-radius:2px;}
+.d-fac-icon{font-size:2rem;opacity:.35;}
+.d-fac-label{font-size:.62rem;color:var(--n4);letter-spacing:.08em;text-align:center;line-height:1.6;}
+.d-fac img{width:100%;border:1px solid var(--n3);display:block;}
+/* Navigation */
+.dnavrow{display:flex;justify-content:space-between;padding:.65rem .9rem;border-top:1px solid var(--n3);background:var(--bg);flex-shrink:0;}
+.dnav{background:none;border:1px solid var(--n3);color:var(--steel);font-family:var(--mono);font-size:.6rem;padding:.2rem .6rem;cursor:pointer;letter-spacing:.06em;transition:all .15s;}
+.dnav:hover{background:var(--bg3);border-color:var(--steel);}
+.dnav:disabled{opacity:.3;cursor:not-allowed;}
+.dpos{font-size:.6rem;color:var(--n4);align-self:center;font-family:var(--mono);}
+
+/* ── FOOTER ── */
+footer{background:var(--bg2);border-top:1px solid var(--n3);height:40px;display:flex;align-items:center;padding:0 1rem;gap:.9rem;flex-shrink:0;}
+.fstat{font-size:.6rem;color:var(--n4);margin-left:auto;text-align:right;}
+.fstat strong{color:var(--st2);}
+.fcoord{font-size:.56rem;color:var(--n3);letter-spacing:.04em;}
+.bexport{background:var(--n3);border:1px solid var(--steel);color:var(--sky2);font-family:var(--mono);font-size:.6rem;padding:0 .75rem;height:28px;cursor:pointer;letter-spacing:.08em;display:flex;align-items:center;gap:.35rem;transition:all .15s;}
+.bexport:hover{background:var(--n4);border-color:var(--sky);}
+
+/* ── MODAL AI ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(13,30,46,.72);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--n3);width:560px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;max-height:85vh;}
+.mhead{background:var(--bg);border-bottom:1px solid var(--n3);padding:.65rem 1rem;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.mtitle{font-size:.7rem;color:var(--sky2);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:.55rem;}
+.mx{background:none;border:none;color:var(--n4);font-size:1rem;cursor:pointer;transition:color .15s;line-height:1;}
+.mx:hover{color:var(--red);}
+.mbody{padding:1rem;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.7rem;}
+.mnote{font-size:.65rem;color:var(--steel);line-height:1.65;}
+.mta-wrap{display:flex;flex-direction:column;gap:.45rem;}
+textarea.mta{width:100%;background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.7rem;padding:.55rem .75rem;resize:vertical;min-height:72px;outline:none;transition:border-color .15s;}
+textarea.mta:focus{border-color:var(--steel);}
+.mactions{display:flex;align-items:center;gap:.6rem;}
+.msend{background:var(--steel);border:none;color:#fff;font-family:var(--mono);font-size:.62rem;padding:.28rem .85rem;cursor:pointer;letter-spacing:.08em;transition:background .15s;}
+.msend:hover{background:var(--st2);}
+.msend:disabled{opacity:.4;cursor:not-allowed;}
+.mstatus{font-size:.58rem;color:var(--n4);letter-spacing:.04em;}
+.mresponse{background:var(--bg);border:1px solid var(--n3);border-left:3px solid var(--steel);padding:.6rem .75rem;font-size:.7rem;color:var(--sky2);line-height:1.7;white-space:pre-wrap;display:none;}
+.mresponse.visible{display:block;}
+.minfo{font-size:.6rem;color:var(--n4);padding:.4rem .65rem;border:1px solid var(--n3);border-left:3px solid var(--n3);letter-spacing:.04em;line-height:1.7;}
+
+/* ── FACET SEARCH ── */
+.fsearch-wrap{padding:.22rem .85rem .12rem;display:none;}
+.fsearch-wrap.visible{display:block;}
+.fsearch-input{width:100%;background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.63rem;padding:.2rem .45rem;outline:none;transition:border-color .15s;letter-spacing:.03em;}
+.fsearch-input:focus{border-color:var(--steel);}
+.fsearch-input::placeholder{color:var(--n4);}
+.fmore{width:100%;background:none;border:none;border-top:1px dashed var(--n3);color:var(--n4);font-family:var(--mono);font-size:.56rem;padding:.22rem 0 .1rem;cursor:pointer;letter-spacing:.08em;text-align:center;transition:color .15s;margin-top:2px;}
+.fmore:hover{color:var(--steel);}
+/* ── WC LEGEND ── */
+.wc-legend{position:absolute;bottom:.75rem;left:.75rem;background:rgba(242,247,252,.94);border:1px solid var(--n3);padding:.4rem .65rem;font-size:.57rem;z-index:10;backdrop-filter:blur(3px);pointer-events:none;}
+.wc-legend span{display:flex;align-items:center;gap:.35rem;color:var(--sky);margin-bottom:.12rem;}
+.wc-legend span:last-child{margin-bottom:0;}
+.wc-cur{cursor:pointer;font-size:.75rem;}
+.wc-def{opacity:.45;font-size:.75rem;}
+
+/* ── CLUSTERS ── */
+#pane-cl{flex-direction:column;}
+.cl-controls{display:flex;align-items:center;gap:.7rem;padding:.5rem .9rem;background:var(--bg2);border-bottom:1px solid var(--n3);flex-shrink:0;flex-wrap:wrap;}
+.cl-controls label{font-size:.6rem;font-weight:700;letter-spacing:.1em;color:#020b14;text-transform:uppercase;}
+.cl-k-select{background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;cursor:pointer;outline:none;}
+.cl-run{background:var(--steel);border:none;color:#fff;font-family:var(--mono);font-size:.6rem;padding:0 .75rem;height:28px;cursor:pointer;letter-spacing:.08em;transition:background .15s;}
+.cl-run:hover{background:var(--st2);}
+.cl-info{font-size:.6rem;color:var(--n4);margin-left:auto;letter-spacing:.03em;}
+
+/* scatter layout */
+.cl-body{flex:1;display:flex;overflow:hidden;min-height:0;}
+.cl-plot{flex:1;position:relative;overflow:hidden;background:var(--bg2);border-right:1px solid var(--n3);}
+.cl-plot svg{display:block;width:100%;height:100%;}
+.cl-side{width:270px;min-width:230px;overflow-y:auto;display:flex;flex-direction:column;gap:0;background:var(--bg2);}
+
+/* scatter point tooltip */
+.cl-tooltip{
+  position:fixed;pointer-events:none;z-index:999;
+  background:var(--sky2);color:#e8f0f8;
+  font-family:var(--mono);font-size:.6rem;line-height:1.5;
+  padding:.35rem .6rem;border-radius:1px;
+  box-shadow:0 4px 16px rgba(0,0,0,.28);
+  display:none;white-space:nowrap;letter-spacing:.03em;
+}
+
+/* side panel cards */
+.cl-group{border-bottom:1px solid var(--n3);background:var(--bg2);}
+.cl-ghead{display:flex;align-items:baseline;gap:.6rem;padding:.38rem .75rem;cursor:pointer;user-select:none;border-bottom:1px solid transparent;}
+.cl-ghead:hover{background:rgba(26,58,92,.04);}
+.cl-gbadge{font-size:.6rem;font-weight:600;color:#fff;padding:.1rem .4rem;letter-spacing:.05em;flex-shrink:0;}
+.cl-gtitle{font-size:.65rem;font-weight:600;color:var(--sky2);flex:1;}
+.cl-gcount{font-size:.56rem;color:var(--n4);white-space:nowrap;}
+.cl-gkw{font-size:.54rem;color:var(--steel);letter-spacing:.03em;padding:.18rem .75rem .26rem;border-bottom:1px solid var(--n3);background:rgba(26,58,92,.025);font-style:italic;line-height:1.5;}
+.cl-gcards{display:flex;flex-direction:column;gap:0;}
+.cl-card{padding:.32rem .75rem;border-bottom:1px solid var(--n3);display:flex;align-items:baseline;gap:.5rem;cursor:pointer;transition:background .12s;font-size:.65rem;}
+.cl-card:last-child{border-bottom:none;}
+.cl-card:hover{background:rgba(26,58,92,.05);}
+.cl-card.cl-card-hl{background:rgba(26,58,92,.13);}
+.cl-cid{font-weight:600;min-width:36px;}
+.cl-croute{color:var(--steel);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.6rem;}
+.cl-cdate{font-size:.56rem;color:var(--n4);white-space:nowrap;}
+.cl-legend{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;font-size:.58rem;color:var(--n4);letter-spacing:.04em;}
+.cl-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:.2rem;}
+.cl-empty-plot{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--n4);font-size:.65rem;letter-spacing:.06em;gap:.6rem;}
+.cl-empty-plot .empty-ico{font-size:2rem;opacity:.4;}
+
+/* ── LEAFLET ── */
+.leaflet-container{background:var(--bg)!important;font-family:var(--mono);}
+.leaflet-tile-pane{filter:saturate(.4) brightness(1.05) contrast(.88) hue-rotate(185deg);}
+.leaflet-popup-content-wrapper{background:var(--bg2);border:1px solid var(--n3);color:var(--sky2);border-radius:1px;}
+.leaflet-popup-tip{background:var(--n3);}
+.leaflet-control-attribution{background:rgba(232,240,248,.88)!important;color:var(--n4)!important;font-family:var(--mono)!important;font-size:.48rem!important;}
+.leaflet-control-zoom a{background:var(--bg2)!important;color:var(--steel)!important;border-color:var(--n3)!important;}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside>
+    <div class="logo" style="height:54px;display:flex;flex-direction:column;justify-content:center;padding:0 .85rem;border-bottom:1px solid var(--n3);flex-shrink:0;cursor:pointer;" onclick="location.reload()">Correspondence Exploration</div>
+    <div class="sh" style="margin-top:.5rem;">
+      <span class="sl">Filtres</span>
+      <button class="breset" onclick="resetFilters()">RESET</button>
+    </div>
+    <div class="fblock"><button class="ftog" onclick="tog(this)"><span>SENDER</span><span class="farr">▶</span></button><div class="fsearch-wrap" id="fs-s"><input class="fsearch-input" type="text" placeholder="Filtrer…" oninput="filterFacetUI('f-s',this.value)"></div><div class="fbody hidden" id="f-s"></div></div>
+    <div class="fblock"><button class="ftog" onclick="tog(this)"><span>RECIPIENT</span><span class="farr">▶</span></button><div class="fsearch-wrap" id="fs-r"><input class="fsearch-input" type="text" placeholder="Filtrer…" oninput="filterFacetUI('f-r',this.value)"></div><div class="fbody hidden" id="f-r"></div></div>
+    <div class="fblock"><button class="ftog" onclick="tog(this)"><span>SENDING PLACE</span><span class="farr">▶</span></button><div class="fsearch-wrap" id="fs-sp"><input class="fsearch-input" type="text" placeholder="Filtrer…" oninput="filterFacetUI('f-sp',this.value)"></div><div class="fbody hidden" id="f-sp"></div></div>
+    <div class="fblock"><button class="ftog" onclick="tog(this)"><span>RECEIVING PLACE</span><span class="farr">▶</span></button><div class="fsearch-wrap" id="fs-rp"><input class="fsearch-input" type="text" placeholder="Filtrer…" oninput="filterFacetUI('f-rp',this.value)"></div><div class="fbody hidden" id="f-rp"></div></div>
+    <div class="fblock">
+      <button class="ftog" onclick="tog(this)"><span>PERIOD</span><span class="farr">▶</span></button>
+      <div class="slider-inner hidden" id="f-yr">
+        <div class="time-slider-labels">
+          <span id="ylo">—</span>
+          <span id="yhi">—</span>
+        </div>
+        <div class="time-slider-track">
+          <div class="time-slider-range" id="slider-range" style="left:0%;width:100%;"></div>
+          <input type="range" id="sl-lo" min="1900" max="2000" value="1900" step="1" oninput="onSlide()">
+          <input type="range" id="sl-hi" min="1900" max="2000" value="2000" step="1" oninput="onSlide()">
+        </div>
+      </div>
+    </div>
+    <div class="fblock"><button class="ftog" onclick="tog(this)"><span>PERSONS CITED</span><span class="farr">▶</span></button><div class="fsearch-wrap" id="fs-p"><input class="fsearch-input" type="text" placeholder="Filtrer…" oninput="filterFacetUI('f-p',this.value)"></div><div class="fbody hidden" id="f-p"></div></div>
+    <div class="fblock"><button class="ftog" onclick="tog(this)"><span>PLACES CITED</span><span class="farr">▶</span></button><div class="fsearch-wrap" id="fs-l"><input class="fsearch-input" type="text" placeholder="Filtrer…" oninput="filterFacetUI('f-l',this.value)"></div><div class="fbody hidden" id="f-l"></div></div>
+    <div class="fblock"><button class="ftog" onclick="tog(this)"><span>OBJECTS CITED</span><span class="farr">▶</span></button><div class="fsearch-wrap" id="fs-o"><input class="fsearch-input" type="text" placeholder="Filtrer…" oninput="filterFacetUI('f-o',this.value)"></div><div class="fbody hidden" id="f-o"></div></div>
+<div style="margin-top:auto;height:40px;display:flex;flex-direction:column;justify-content:center;padding:0 .85rem;border-top:1px solid var(--n3);font-size:.52rem;color:var(--n4);letter-spacing:.03em;line-height:1.6;opacity:.8;flex-shrink:0;">Developed by Motasem Alrahabi<br><span style="white-space:nowrap;">ObTIC · SU · <span id="footer-year"></span></span></div>
+<script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+
+
+  </aside>
+
+<div class="right-col">
+
+<!-- HEADER -->
+<header>
+  <div class="srow">
+    <div class="sbox">
+      <input type="text" id="q" placeholder="Search in letters..." autocomplete="off" oninput="applyFilters()" style="padding:0 .7rem;">
+    </div>
+    <button class="sbox" style="height:34px;padding:0 .8rem;cursor:pointer;border:1px solid var(--n3);background:var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;white-space:nowrap;flex:0;width:auto;" onclick="applyFilters()">Search</button>
+    <button class="btn-ai" style="opacity:.4;cursor:not-allowed;pointer-events:none;" title="Feature disabled">⚙ Explore the corpus with AI</button>
+  </div>
+  <button class="btn-guide" onclick="openGuide()">? Guide</button>
+</header>
+
+<!-- MODAL AI -->
+<div class="overlay" id="overlay" onclick="bgClose(event)">
+  <div class="modal">
+    <div class="mhead">
+      <div style="display:flex;align-items:center;gap:.8rem;flex:1;">
+        <div class="mtitle">⬡ Recherche en langage naturel</div>
+        <span style="color:var(--n4);font-size:.58rem;letter-spacing:.06em;">MODEL:</span>
+        <select id="model-sel" style="background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.62rem;padding:.18rem .45rem;outline:none;cursor:pointer;letter-spacing:.04em;">
+          <option value="mistral">Mistral</option>
+          <option value="qwen3">Qwen3</option>
+          <option value="llama3">LLama 3.2</option>
+        </select>
+      </div>
+      <button class="mx" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <p class="mnote">Ask a question about the corpus. The model analyzes the letters and responds with precision, citing the relevant letter identifiers.</p>
+      <div class="mta-wrap">
+        <textarea class="mta" id="ai-q" placeholder="Ex : Qui entretient le plus de correspondance avec un même destinataire ?&#10;Ex : Quels sont les lieux les plus cités dans le corpus ?"></textarea>
+        <div class="mactions">
+          <button class="msend" id="msend" onclick="sendAI()">ENVOYER ↵</button>
+          <span class="mstatus" id="mstatus"></span>
+        </div>
+      </div>
+      <div class="mresponse" id="mresponse"></div>
+      <span id="corpus-count" style="display:none;"></span>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+  <main>
+    <div class="tabbar">
+      <button class="tbtn active" onclick="switchTab('res',this)">◈ Letters</button>
+      <button class="tbtn" onclick="switchTab('net',this)">◎ Network</button>
+      <button class="tbtn" onclick="switchTab('map',this)">◻ Map</button>
+      <button class="tbtn" onclick="switchTab('tl',this)">⊣ Timeline</button>
+      <button class="tbtn" onclick="switchTab('wc',this)">≋ Word Cloud</button>
+      <button class="tbtn" onclick="switchTab('cl',this)">⬡ CLUSTERS</button>
+    </div>
+    <div class="pane active" id="pane-res">
+      <span id="rc" style="display:none;"></span>
+      <div class="rscroll" id="rl"></div>
+    </div>
+    <div class="pane" id="pane-net" style="flex-direction:column;">
+      <!-- Controls bar -->
+      <div id="net-controls" style="display:flex;align-items:center;gap:.7rem;padding:.5rem .9rem;background:var(--bg2);border-bottom:1px solid var(--n3);flex-shrink:0;flex-wrap:wrap;">
+        <span style="font-size:.6rem;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;">Focus on</span>
+        <select id="net-focus" onchange="renderNet()" style="background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;cursor:pointer;outline:none;">
+          <option value="">— All actors —</option>
+        </select>
+        <span style="font-size:.6rem;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;margin-left:.4rem;">Edges</span>
+        <select id="net-edge" onchange="renderNet()" style="background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;cursor:pointer;outline:none;">
+          <option value="both">Sent + Received</option>
+          <option value="sent">Sent only</option>
+          <option value="received">Received only</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:.35rem;font-size:.65rem;color:var(--sky2);cursor:pointer;margin-left:.4rem;">
+          <input type="checkbox" id="net-cited" onchange="renderNet()" checked style="accent-color:var(--steel);cursor:pointer;">
+          Persons cited
+        </label>
+        <label style="display:flex;align-items:center;gap:.35rem;font-size:.65rem;color:var(--sky2);cursor:pointer;">
+          <input type="checkbox" id="net-labels" onchange="renderNet()" checked style="accent-color:var(--steel);cursor:pointer;">
+          Labels
+        </label>
+        <span id="net-info" style="font-size:.6rem;color:var(--n4);margin-left:auto;letter-spacing:.03em;"></span>
+      </div>
+      <!-- SVG container -->
+      <div id="net-el" style="flex:1;position:relative;overflow:hidden;min-height:0;"></div>
+      <!-- Legend -->
+      <div class="vleg">
+        <h4>Legend</h4>
+        <div class="lrow"><span class="ldot" style="background:#3a7aaf"></span>Auteur principal</div>
+        <div class="lrow"><span class="ldot" style="background:#5a9a70"></span>Cited person</div>
+        <div style="margin-top:.4rem;color:var(--n4);font-size:.54rem;">Size ∝ no. letters<br>Thickness ∝ no. exchanges</div>
+      </div>
+    </div>
+    <div class="pane" id="pane-map" style="position:relative;">
+      <div id="map-el"></div>
+      <div class="vleg">
+        <h4>Legend</h4>
+        <div class="lrow"><span class="ldot" style="background:#3a7aaf;border:1px solid #aaa"></span>Active place</div>
+        <div style="margin-top:.3rem;color:var(--n4);font-size:.54rem;">Radius ∝ letter count</div>
+        <div style="margin-top:.4rem;display:flex;align-items:center;gap:.38rem;color:var(--n4);font-size:.54rem;"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#1a3a5c" stroke-width="1.2" stroke-dasharray="3,4"/></svg>Sending flow (sender → recipient)</div>
+      </div>
+    </div>
+    <div class="pane" id="pane-tl">
+      <div id="tl-controls" style="display:flex;align-items:center;gap:.7rem;padding:.5rem .9rem;background:var(--bg2);border-bottom:1px solid var(--n3);flex-shrink:0;flex-wrap:wrap;">
+        <span style="font-size:.6rem;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;">Filter by</span>
+        <select id="tl-mode" onchange="renderTL()" style="background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;cursor:pointer;outline:none;">
+          <option value="all">All letters</option>
+          <option value="sender">By sender</option>
+          <option value="recipient">By recipient</option>
+        </select>
+        <select id="tl-person" onchange="renderTL()" style="background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;cursor:pointer;outline:none;display:none;">
+          <option value="">— All —</option>
+        </select>
+        <span style="font-size:.6rem;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;margin-left:.5rem;">View</span>
+        <select id="tl-view" onchange="renderTL()" style="background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;cursor:pointer;outline:none;">
+          <option value="dot">Points by month</option>
+          <option value="hist">Histogram by year</option>
+          <option value="month" selected>Histogram by month</option>
+        </select>
+        <span id="tl-info" style="font-size:.6rem;color:var(--n4);margin-left:auto;letter-spacing:.03em;"></span>
+      </div>
+      <div id="tl-el" style="flex:1;overflow:auto;"></div>
+    </div>
+    <div class="pane" id="pane-wc" style="position:relative;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:.7rem;padding:.5rem .9rem;background:var(--bg2);border-bottom:1px solid var(--n3);flex-shrink:0;flex-wrap:wrap;">
+        <span style="font-size:.6rem;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;">Word count</span>
+        <input type="range" id="wc-count" min="10" max="100" value="60" step="5" style="width:120px;accent-color:var(--steel);cursor:pointer;" oninput="document.getElementById('wc-count-val').textContent=this.value;renderWC()">
+        <span id="wc-count-val" style="font-size:.65rem;color:var(--sky2);font-family:var(--mono);min-width:24px;">60</span>
+        <span style="font-size:.6rem;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;margin-left:.4rem;">Language</span>
+        <select id="wc-lang" onchange="renderWC()" style="background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;cursor:pointer;outline:none;">
+          <option value="all">All</option>
+          <option value="ar">Arabic</option>
+          <option value="fr">French</option>
+        </select>
+        <span id="wc-info" style="font-size:.6rem;color:var(--n4);margin-left:auto;letter-spacing:.03em;"></span>
+      </div>
+      <div id="wc-inner" style="position:relative;flex:1;overflow:hidden;min-height:200px;"></div>
+    </div>
+    <div class="pane" id="pane-cl">
+      <div style="display:flex;align-items:center;gap:.7rem;padding:.5rem .9rem;background:var(--bg2);border-bottom:1px solid var(--n3);flex-shrink:0;flex-wrap:wrap;">
+        <span style="font-size:.6rem;letter-spacing:.1em;color:var(--steel);text-transform:uppercase;">Number of clusters</span>
+        <select id="cl-k" style="background:var(--bg);border:1px solid var(--n3);color:var(--sky2);font-family:var(--mono);font-size:.65rem;padding:.2rem .5rem;cursor:pointer;outline:none;">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+        <button onclick="renderClusters()" style="background:var(--steel);border:none;color:#fff;font-family:var(--mono);font-size:.6rem;padding:.2rem .75rem;cursor:pointer;letter-spacing:.08em;">▶ CLUSTER</button>
+        <span id="cl-info" style="font-size:.6rem;color:var(--n4);margin-left:auto;letter-spacing:.03em;"></span>
+      </div>
+      <div class="cl-body">
+        <div class="cl-plot" id="cl-plot">
+          <div class="cl-empty-plot" id="cl-empty-plot">
+            <span class="empty-ico">⬡</span>
+            <span>Click CLUSTER to start the analysis</span>
+          </div>
+        </div>
+        <div class="cl-side" id="cl-side"></div>
+      </div>
+      <div class="cl-tooltip" id="cl-tooltip"></div>
+    </div>
+  </main>
+
+  <!-- DRAWER détail -->
+  <div class="drawer" id="drawer">
+    <div class="dhead">
+      <span class="did" id="d-id">—</span>
+      <div class="dviews">
+        <button class="dview-btn active" id="dv-split" onclick="setDrawerView('split')">⊟ Side by side</button>
+        <button class="dview-btn" id="dv-text"  onclick="setDrawerView('text')">☰ Text only</button>
+        <button class="dview-btn" id="dv-img"   onclick="setDrawerView('img')">▭ Image only</button>
+      </div>
+      <button class="dclo" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="dbody" id="d-body">
+      <!-- filled by renderDrawer() -->
+    </div>
+    <div class="dnavrow">
+      <button class="dnav" id="d-prev" onclick="drawerNav(-1)">◀ PREVIOUS</button>
+      <span class="dpos" id="d-pos">—</span>
+      <button class="dnav" id="d-next" onclick="drawerNav(+1)">Next ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="fstat" id="fstat"></div>
+  <button class="bexport" onclick="exportCSV()">↓ EXPORT.CSV</button>
+</footer>
+
+</div><!-- /.right-col -->
+<!-- MODAL GUIDE -->
+<div class="overlay" id="overlay-guide" onclick="closeGuide(event)">
+  <div class="modal" style="width:620px;">
+    <div class="mhead">
+      <div class="mtitle">◈ Guide — Correspondence Exploration</div>
+      <button class="mx" onclick="closeGuide()">✕</button>
+    </div>
+    <div class="mbody" style="gap:.9rem;">
+      <p class="mnote" style="font-size:.72rem;line-height:1.8;">
+        Welcome to <strong>Risala for Correspondence Exploration</strong>, an epistolary corpus explorer developed as part of the ObTIC project (Sorbonne Université, 2026).
+      </p>
+
+      <div style="border-left:2px solid var(--n3);padding-left:.8rem;display:flex;flex-direction:column;gap:.55rem;">
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--steel);margin-bottom:.2rem;">◈ Letters</div>
+          <div style="font-size:.68rem;color:var(--sky);line-height:1.7;">List of filtered letters, sorted by date. Click on a card to open the detail panel — full text, metadata, clickable entities. The <strong>PRS / LOC / OBJ</strong> tags instantly filter the current selection.</div>
+        </div>
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--steel);margin-bottom:.2rem;">◎ Network</div>
+          <div style="font-size:.68rem;color:var(--sky);line-height:1.7;">Correspondence graph between senders (colored nodes) and cited persons (green nodes). Edge thickness is proportional to the number of letters exchanged. Use Focus on to isolate an actor, and drag nodes freely.</div>
+        </div>
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--steel);margin-bottom:.2rem;">◻ Map</div>
+          <div style="font-size:.68rem;color:var(--sky);line-height:1.7;">Geographic map of correspondences. Each active place is represented by a circle whose radius is proportional to the number of letters. Dashed lines indicate sending flows (sender → recipient). Requires geographic coordinates in the corpus.</div>
+        </div>
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--steel);margin-bottom:.2rem;">⊣ Timeline</div>
+          <div style="font-size:.68rem;color:var(--sky);line-height:1.7;">Timeline of letters. Three views: Points by month (one point per letter on a line per sender), Histogram by year, Histogram by month. Drag horizontally to navigate. Click on a point or bar to open the corresponding letters. The Period filter in the sidebar restricts the years displayed.</div>
+        </div>
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--steel);margin-bottom:.2rem;">≋ Word Cloud</div>
+          <div style="font-size:.68rem;color:var(--sky);line-height:1.7;">Most frequent terms in the current selection. Size is proportional to frequency. Adjust the word count with the slider, and filter by language (All / Arabic / French). Common stopwords (Arabic and French) are automatically removed.</div>
+        </div>
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--steel);margin-bottom:.2rem;">⊙ Clusters</div>
+          <div style="font-size:.68rem;color:var(--sky);line-height:1.7;">Automatic grouping of letters by textual similarity (k-means on TF-IDF, 2D PCA projection). Each color corresponds to a cluster. Choose the <strong>number of clusters</strong> and click <strong>Cluster</strong>. Requires a corpus with sufficiently varied texts.</div>
+        </div>
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--steel);margin-bottom:.2rem;">↓ Export CSV</div>
+          <div style="font-size:.68rem;color:var(--sky);line-height:1.7;">Exports the current selection in CSV format (UTF-8 with BOM, Excel-compatible). All fields are included: identifier, dates, sender, recipient, places, text, entities.</div>
+        </div>
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--steel);margin-bottom:.2rem;">⧗ Filters</div>
+          <div style="font-size:.68rem;color:var(--sky);line-height:1.7;">All filters (sender, recipient, places, period, entities) apply in real time across all views. The <strong>Period</strong> filter uses a double slider: drag both ends to define a year range. The <strong>RESET</strong> button resets all filters.</div>
+        </div>
+      </div>
+
+<div style="font-size:.6rem;color:var(--n4);padding:.45rem .65rem;border:1px solid var(--n3);border-left:3px solid var(--n3);line-height:1.8;">
+  ObTIC · Sorbonne Université · <span id="current-year"></span>
+</div>
+<script>document.getElementById('current-year').textContent = new Date().getFullYear();</script>
+
+    </div>
+  </div>
+</div>
+
+</div><!-- .app -->
+
+<script>
+/* ═══════════════════════════════════════
+   A. CORPUS EMBARQUÉ (fallback si pas de serveur)
+   ═══════════════════════════════════════ */
+const EMBEDDED = {"metadata":{},"letters":[]};
+
+/* ═══════════════════════════════════════
+   B. NORMALISATION DES NOMS
+   ═══════════════════════════════════════ */
+const CANON = {
+  'Hugo':'Victor Hugo','Sand':'George Sand','Zola':'Émile Zola',
+  'Cézanne':'Paul Cézanne','Baudelaire':'Charles Baudelaire',
+  'Flaubert':'Gustave Flaubert','Dumas':'Alexandre Dumas'
+};
+const canon = n => (n && CANON[n]) || n || "—";
+
+/* ═══════════════════════════════════════
+   D. CHARGEMENT EXTERNE (fetch + fallback)
+   ═══════════════════════════════════════ */
+async function loadCorpus() {
+  try {
+    const res = await fetch('lettres_ar.json');
+    if (res.ok) { const d = await res.json(); return d.letters || d; }
+  } catch(_) {}
+  // Afficher un message si le fichier est introuvable
+  document.getElementById('rl').innerHTML = '<div class="empty"><div class="empty-ico">⚠</div><p>FILE lettres.json NOT FOUND<br><span style="font-size:.6rem;opacity:.7">Launch a local server in the folder containing risala.html and lettres.json.</span></p></div>';
+  return [];
+}
+
+/* ═══════════════════════════════════════
+   STATUS GLOBAL
+   ═══════════════════════════════════════ */
+let ALL = [], SEL = [], curTab = 'res', curDrawerIdx = -1;
+const FS = {q:'',s:new Set(),r:new Set(),sp:new Set(),rp:new Set(),ylo:0,yhi:9999,p:new Set(),l:new Set(),o:new Set()};
+
+function acc(l) {
+  const m = l.metadata;
+  return {
+    id:   l.id,
+    s:    canon(m.sender.name),
+    r:    canon(m.recipient.name),
+    d:    m.date.sent || '—',
+    yr:   (function(ds){
+      if (!ds) return 0;
+      let y;
+      if (/^\d{4}-/.test(ds)) y = +ds.slice(0,4);
+      else {
+        const p = ds.split(/[.\/\-]/);
+        if (p.length >= 3) {
+          const raw = +p[p[0].length===4 ? 0 : 2];
+          y = raw < 100 ? (raw >= 60 ? 1900+raw : 2000+raw) : raw;
+        } else y = +ds.slice(0,4) || 0;
+      }
+      return (y >= 1900 && y <= 2100) ? y : 0; // ignore dates aberrantes
+    })(m.date.sent),
+    sp:   m.places.sender_place.name,
+    rp:   m.places.recipient_place.name,
+    slat: m.places.sender_place.latitude,
+    slon: m.places.sender_place.longitude,
+    rlat: m.places.recipient_place.latitude,
+    rlon: m.places.recipient_place.longitude,
+    pers: m.entities.persons.map(x => canon(x.name)),
+    locs: m.entities.places.map(x => x.name),
+    objs: m.entities.objects.map(x => x.name),
+    txt:  l.content.text,
+    src:  m.source, lang: m.language
+  };
+}
+
+/* ═══════════════════════════════════════
+   FILTRES
+   ═══════════════════════════════════════ */
+function applyFilters() {
+  FS.q = document.getElementById('q').value.toLowerCase().trim();
+  SEL = ALL.filter(l => {
+    const a = acc(l);
+    if (FS.q && ![a.s,a.r,a.txt,a.sp,a.rp,...a.pers,...a.locs,...a.objs].join(' ').toLowerCase().includes(FS.q)) return false;
+    if (FS.s.size  && !FS.s.has(a.s))   return false;
+    if (FS.r.size  && !FS.r.has(a.r))   return false;
+    if (FS.sp.size && !FS.sp.has(a.sp)) return false;
+    if (FS.rp.size && !FS.rp.has(a.rp)) return false;
+    if (a.yr < FS.ylo || a.yr > FS.yhi) return false;
+    if (FS.p.size && !a.pers.some(x => FS.p.has(x))) return false;
+    if (FS.l.size && !a.locs.some(x => FS.l.has(x))) return false;
+    if (FS.o.size && !a.objs.some(x => FS.o.has(x))) return false;
+    return true;
+  });
+  render();
+}
+
+function resetFilters() {
+  document.getElementById('q').value = '';
+  Object.assign(FS, {q:'', ylo:0, yhi:9999});
+  ['s','r','sp','rp','p','l','o'].forEach(k => FS[k].clear());
+  const _yrs2 = ALL.map(l=>l.metadata.date.sent ? +l.metadata.date.sent.slice(0,4) : 0).filter(Boolean);
+  const _ylo2 = _yrs2.length ? Math.min(..._yrs2) : 1900;
+  const _yhi2 = _yrs2.length ? Math.max(..._yrs2) : 2000;
+  document.getElementById('sl-lo').value = _ylo2;
+  document.getElementById('sl-hi').value = _yhi2;
+  const range=document.getElementById('slider-range');
+  range.style.left='0%'; range.style.width='100%';
+  document.getElementById('ylo').textContent='—';
+  document.getElementById('yhi').textContent='—';
+  document.querySelectorAll('.fi input').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.fsearch-input').forEach(inp => inp.value = '');
+  Object.keys(facetExpanded).forEach(k => delete facetExpanded[k]);
+  SEL = [...ALL]; render();
+}
+
+function onSlide() {
+  let lo=+document.getElementById('sl-lo').value, hi=+document.getElementById('sl-hi').value;
+  if(lo>hi){const t=lo;lo=hi;hi=t;}
+  const min=+document.getElementById('sl-lo').min, max=+document.getElementById('sl-hi').max;
+  const pLo=(lo-min)/(max-min)*100, pHi=(hi-min)/(max-min)*100;
+  const range=document.getElementById('slider-range');
+  range.style.left=pLo+'%'; range.style.width=(pHi-pLo)+'%';
+  document.getElementById('ylo').textContent=lo<=min?'—':lo;
+  document.getElementById('yhi').textContent=hi>=max?'—':hi;
+  FS.ylo=lo; FS.yhi=hi;
+  applyFilters();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // live filtering handled by oninput on the input element
+});
+
+/* ═══════════════════════════════════════
+   FACETTES
+   ═══════════════════════════════════════ */
+function tog(btn) {
+  const b = btn.nextElementSibling;
+  // skip fsearch-wrap if present, get the real content element
+  const isSearch = b && b.classList.contains('fsearch-wrap');
+  const content = isSearch ? b.nextElementSibling : b;
+  const a = btn.querySelector('.farr');
+  const open = content.classList.contains('hidden');
+  content.classList.toggle('hidden', !open);
+  if (isSearch) { b.classList.toggle('visible', open); if (!open) { b.querySelector('input').value=''; filterFacetUI(content.id,''); } }
+  a.classList.toggle('open', open);
+}
+
+const FACET_MAX = 7;
+const facetExpanded = {};
+
+function bfacet(id, fset, getter) {
+  const ac={}, sc={};
+  ALL.forEach(l => [].concat(getter(l)).forEach(v => ac[v]=(ac[v]||0)+1));
+  SEL.forEach(l => [].concat(getter(l)).forEach(v => sc[v]=(sc[v]||0)+1));
+  const el = document.getElementById(id); el.innerHTML = '';
+  const entries = Object.entries(ac).sort((a,b)=>b[1]-a[1]);
+  const expanded = facetExpanded[id] || false;
+  const shown = expanded ? entries : entries.slice(0, FACET_MAX);
+  shown.forEach(([v]) => {
+    const n = sc[v]||0, row = document.createElement('label');
+    row.className = 'fi';
+    row.innerHTML = `<input type="checkbox" ${fset.has(v)?'checked':''}><span class="fn">${v}</span><span class="fc ${n?'on':''}">[${n}]</span>`;
+    row.querySelector('input').onchange = e => { e.target.checked ? fset.add(v) : fset.delete(v); applyFilters(); };
+    el.appendChild(row);
+  });
+  if (entries.length > FACET_MAX) {
+    const btn = document.createElement('button');
+    btn.className = 'fmore';
+    btn.textContent = expanded ? `▲ Réduire` : `+ ${entries.length - FACET_MAX} autres`;
+    btn.onclick = () => { facetExpanded[id] = !facetExpanded[id]; bfacets(); };
+    el.appendChild(btn);
+  }
+  // apply current search filter visually
+  const fsId = 'fs-' + id.replace('f-','');
+  const fsEl = document.getElementById(fsId);
+  if (fsEl) { const q = fsEl.querySelector('input')?.value||''; if (q) filterFacetUI(id, q); }
+}
+
+function filterFacetUI(facetId, query) {
+  const el = document.getElementById(facetId);
+  if (!el) return;
+  const q = query.toLowerCase().trim();
+  el.querySelectorAll('label.fi').forEach(row => {
+    const txt = row.querySelector('.fn')?.textContent.toLowerCase()||'';
+    row.style.display = (!q || txt.includes(q)) ? '' : 'none';
+  });
+}
+
+function bfacets() {
+  bfacet('f-s', FS.s, l=>acc(l).s);   bfacet('f-r', FS.r, l=>acc(l).r);
+  bfacet('f-sp',FS.sp,l=>acc(l).sp);  bfacet('f-rp',FS.rp,l=>acc(l).rp);
+  bfacet('f-p', FS.p, l=>acc(l).pers); bfacet('f-l',FS.l,l=>acc(l).locs); bfacet('f-o',FS.o,l=>acc(l).objs);
+}
+
+/* ═══════════════════════════════════════
+   RESULTS
+   ═══════════════════════════════════════ */
+function renderRes() {
+  const list = document.getElementById('rl');
+  document.getElementById('rc').textContent = SEL.length;
+  if (!SEL.length) { list.innerHTML = '<div class="empty"><div class="empty-ico">◎</div><p>NO ENTRIES — MODIFY FILTERS</p></div>'; return; }
+  list.innerHTML = '';
+  const sorted = [...SEL].sort((a,b) => acc(a).d.localeCompare(acc(b).d));
+  sorted.forEach((l, idx) => {
+    const a = acc(l), c = document.createElement('div');
+    c.className = 'lcard'; c.dataset.idx = idx;
+    c.innerHTML = `<span class="cid">${a.id}</span>
+<div class="ctop"><div class="croute">${a.s} <span class="arr">→</span> ${a.r}</div><div class="cdate">${a.d}</div></div>
+<div class="cplc"><span>FROM:</span> ${a.sp} &nbsp;·&nbsp; <span>TO:</span> ${a.rp}</div>
+<div class="ctxt">${a.txt.length > 120 ? a.txt.slice(0,120)+'…' : a.txt}</div>
+<div class="ctags">
+  ${a.pers.map(x=>`<span class="tag tp" onclick="filterByEntity('p','${x}',event)">PRS:${x}</span>`).join('')}
+  ${a.locs.map(x=>`<span class="tag tl" onclick="filterByEntity('l','${x}',event)">LOC:${x}</span>`).join('')}
+  ${a.objs.map(x=>`<span class="tag to" onclick="filterByEntity('o','${x}',event)">OBJ:${x}</span>`).join('')}
+</div>`;
+    c.addEventListener('click', () => openDrawer(sorted, idx));
+    list.appendChild(c);
+  });
+}
+
+/* filtre rapide to clic sur un tag */
+function filterWord(word) {
+  // try to match as person, place, or object entity
+  const all = SEL.flatMap(l=>[
+    ...acc(l).pers.map(v=>({type:'p',v})),
+    ...acc(l).locs.map(v=>({type:'l',v})),
+    ...acc(l).objs.map(v=>({type:'o',v}))
+  ]);
+  const match = all.find(e=>e.v.toLowerCase()===word.toLowerCase());
+  if (match) { filterByEntity(match.type, match.v, {stopPropagation:()=>{}}); }
+  else { document.getElementById('q').value=word; applyFilters(); }
+}
+function filterByEntity(type, val, e) {
+  e.stopPropagation();
+  const map = {p:FS.p, l:FS.l, o:FS.o};
+  map[type].clear(); map[type].add(val);
+  applyFilters();
+}
+
+/* ═══════════════════════════════════════
+   C. DRAWER DÉTAIL
+   ═══════════════════════════════════════ */
+let drawerList = [], drawerIdx = -1, drawerView = 'split';
+
+function setDrawerView(v) {
+  drawerView = v;
+  ['split','text','img'].forEach(k => {
+    document.getElementById('dv-'+k).classList.toggle('active', k===v);
+  });
+  if (drawerIdx >= 0) renderDrawer();
+}
+
+function openDrawer(sorted, idx) {
+  drawerList = sorted; drawerIdx = idx;
+  renderDrawer();
+  document.getElementById('drawer').classList.add('open');
+  document.querySelectorAll('.lcard').forEach(c => c.classList.remove('active-card'));
+  document.querySelectorAll('.lcard')[idx]?.classList.add('active-card');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.querySelectorAll('.lcard').forEach(c => c.classList.remove('active-card'));
+}
+
+function drawerNav(dir) {
+  const next = drawerIdx + dir;
+  if (next < 0 || next >= drawerList.length) return;
+  drawerIdx = next;
+  renderDrawer();
+  document.querySelectorAll('.lcard').forEach((c,i) => c.classList.toggle('active-card', i===drawerIdx));
+  document.querySelectorAll('.lcard')[drawerIdx]?.scrollIntoView({block:'nearest'});
+}
+
+function drawerMetaHTML(l, a) {
+  return `
+    <div class="dmeta">
+      <div class="droute">${a.s} <span class="arr">→</span> ${a.r}</div>
+      <div class="dmrow"><span class="dlabel">DATE SENT</span><span class="dval">${l.metadata.date.sent}</span></div>
+      <div class="dmrow"><span class="dlabel">DATE RECEIVED</span><span class="dval">${l.metadata.date.received}</span></div>
+      <div class="dmrow"><span class="dlabel">SENT FROM</span><span class="dval">${a.sp}</span></div>
+      <div class="dmrow"><span class="dlabel">RECEIVED AT</span><span class="dval">${a.rp}</span></div>
+      <div class="dmrow"><span class="dlabel">LANGUAGE</span><span class="dval">${(a.lang||'fr').toUpperCase()}</span></div>
+      <div class="dmrow"><span class="dlabel">SOURCE</span><span class="dval">${a.src||'—'}</span></div>
+    </div>`;
+}
+
+function drawerTextHTML(a) {
+  return `
+    <div class="dtxt-block">
+      <div class="dtxt-label">Content</div>
+      <div class="dtxt">${a.txt}</div>
+    </div>
+    <div class="dents">
+      <div>
+        <div class="dent-label">Persons cited</div>
+        <div class="dent-tags">${a.pers.length ? a.pers.map(p=>`<span class="dtag dtag-p" onclick="filterByEntity('p','${p}',event);closeDrawer()">👤 ${p}</span>`).join('') : '<span style="font-size:.62rem;color:var(--n4);">—</span>'}</div>
+      </div>
+      <div>
+        <div class="dent-label">Places cited</div>
+        <div class="dent-tags">${a.locs.length ? a.locs.map(p=>`<span class="dtag dtag-l" onclick="filterByEntity('l','${p}',event);closeDrawer()">📍 ${p}</span>`).join('') : '<span style="font-size:.62rem;color:var(--n4);">—</span>'}</div>
+      </div>
+      <div>
+        <div class="dent-label">Objects cited</div>
+        <div class="dent-tags">${a.objs.length ? a.objs.map(o=>`<span class="dtag dtag-o" onclick="filterByEntity('o','${o}',event);closeDrawer()">📦 ${o}</span>`).join('') : '<span style="font-size:.62rem;color:var(--n4);">—</span>'}</div>
+      </div>
+    </div>`;
+}
+
+function drawerImgHTML(a) {
+  const imgSrc = a.img || null; // future: letter.metadata.image_url
+  return imgSrc
+    ? `<div class="d-fac"><img src="${imgSrc}" alt="Fac-similé ${a.id}"></div>`
+    : `<div class="d-fac">
+        <div class="d-fac-icon">▭</div>
+        <div class="d-fac-label">
+          Facsimile not available<br>
+          <span style="opacity:.55;font-size:.58rem;">${a.id} · ${a.src||'archive fictive'}</span><br>
+          <span style="opacity:.45;font-size:.56rem;margin-top:.4rem;display:block;">
+            Add an <code style="font-size:.56rem;">image_url</code> field<br>in the JSON to display the image.
+          </span>
+        </div>
+      </div>`;
+}
+
+function renderDrawer() {
+  const l = drawerList[drawerIdx], a = acc(l);
+  document.getElementById('d-id').textContent = a.id + ' · ' + a.d;
+  document.getElementById('d-pos').textContent = `${drawerIdx+1} / ${drawerList.length}`;
+  document.getElementById('d-prev').disabled = drawerIdx <= 0;
+  document.getElementById('d-next').disabled = drawerIdx >= drawerList.length - 1;
+
+  const body = document.getElementById('d-body');
+  const meta = drawerMetaHTML(l, a);
+  const text = drawerTextHTML(a);
+  const img  = drawerImgHTML(a);
+
+  if (drawerView === 'split') {
+    body.innerHTML = `
+      <div class="d-split">
+        <div class="d-col-text">${meta}${text}</div>
+        <div class="d-col-img">${img}</div>
+      </div>`;
+  } else if (drawerView === 'text') {
+    body.innerHTML = `<div class="d-full-text">${meta}${text}</div>`;
+  } else {
+    body.innerHTML = `<div class="d-full-img">${meta}${img}</div>`;
+  }
+}
+
+/* ═══════════════════════════════════════
+   A. RECHERCHE IA (Anthropic API)
+   ═══════════════════════════════════════ */
+function openModal()  { document.getElementById('overlay').classList.add('open'); }
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function bgClose(e)   { if (e.target===document.getElementById('overlay')) closeModal(); }
+
+function openGuide()  { document.getElementById('overlay-guide').classList.add('open'); }
+function closeGuide(e){ if (!e || e.target===document.getElementById('overlay-guide')) document.getElementById('overlay-guide').classList.remove('open'); }
+
+async function sendAI() {
+  const q = document.getElementById('ai-q').value.trim();
+  if (!q) return;
+  const modelKey = document.getElementById('model-sel').value;
+  const modelMap = { mistral:'mistral-large-latest', qwen3:'qwen3-235b-a22b', llama3:'meta-llama/Llama-3.2-90B-Vision-Instruct' };
+  const model = modelMap[modelKey] || modelKey;
+  const btn = document.getElementById('msend'), status = document.getElementById('mstatus'), resp = document.getElementById('mresponse');
+  btn.disabled = true; status.textContent = 'TRAITEMENT EN COURS…'; resp.classList.remove('visible');
+
+  const summary = ALL.map(l => {
+    const a = acc(l);
+    return `${a.id} (${a.d}): ${a.s} → ${a.r}, ${a.sp}→${a.rp}. "${a.txt}" [pers: ${a.pers.join(', ')||'—'}] [lieux: ${a.locs.join(', ')||'—'}] [objets: ${a.objs.join(', ')||'—'}]`;
+  }).join('\n');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: 1000,
+        system: `Tu es un assistant spécialisé en analyse de corpus de correspondances. Voici l'intégralité du corpus (${ALL.length} lettres) :\n\n${summary}\n\nRéponds en français, de façon précise et structurée. Cite toujours les identifiants de lettres (L001, L002…) quand tu y fais référence.`,
+        messages: [{ role: 'user', content: q }]
+      })
+    });
+    const data = await res.json();
+    if (data.content?.[0]?.text) {
+      resp.textContent = data.content[0].text;
+      resp.classList.add('visible');
+      status.textContent = '✓ RÉPONSE REÇUE';
+    } else {
+      status.textContent = 'ERREUR : ' + (data.error?.message || 'réponse inattendue');
+    }
+  } catch (err) {
+    status.textContent = 'ERREUR RÉSEAU : ' + err.message;
+  }
+  btn.disabled = false;
+}
+
+/* ═══════════════════════════════════════
+   VISUALISATIONS
+   ═══════════════════════════════════════ */
+let _netChart = null;
+
+function renderNet() {
+  const el        = document.getElementById('net-el');
+  const focusSel  = document.getElementById('net-focus');
+  const edgeSel   = document.getElementById('net-edge');
+  const citedCb   = document.getElementById('net-cited');
+  const labelsCb  = document.getElementById('net-labels');
+  const infoEl    = document.getElementById('net-info');
+
+  if (!SEL.length) {
+    if (_netChart) { _netChart.dispose(); _netChart = null; }
+    el.innerHTML = '<div class="empty"><div class="empty-ico">◎</div><p>NO DATA</p></div>';
+    return;
+  }
+
+  /* ── populate focus selector ── */
+  const allActors = [...new Set([...SEL.map(l=>acc(l).s),...SEL.map(l=>acc(l).r)])].sort();
+  if (focusSel) {
+    const prev = focusSel.value;
+    focusSel.innerHTML = '<option value="">— All actors —</option>';
+    allActors.forEach(n => { const o=document.createElement('option'); o.value=n; o.textContent=n; focusSel.appendChild(o); });
+    if (allActors.includes(prev)) focusSel.value = prev;
+  }
+
+  const focus      = focusSel?.value || '';
+  const edgeMode   = edgeSel?.value  || 'both';
+  const showCited  = citedCb?.checked !== false;
+  const showLabels = labelsCb?.checked !== false;
+
+  const PAL = {
+    'Victor Hugo':'#4e9de0','George Sand':'#7ec97e','Balzac':'#e0b44e',
+    'Émile Zola':'#e04eb0','Paul Cézanne':'#4ee0e0','Charles Baudelaire':'#e04e4e',
+    'Gustave Flaubert':'#a04ee0','Alexandre Dumas':'#e0e04e'
+  };
+  const colOf = n => PAL[n] || '#7aa8cc';
+
+  /* ── build nodes & edges ── */
+  const nodeMap = {}, edgeMap = {};
+  let letterCount = 0;
+
+  SEL.forEach(l => {
+    const a = acc(l);
+    const ok =
+      !focus ||
+      (edgeMode==='both'     && (a.s===focus || a.r===focus)) ||
+      (edgeMode==='sent'     && a.s===focus) ||
+      (edgeMode==='received' && a.r===focus);
+    if (!ok) return;
+    letterCount++;
+
+    [a.s,a.r].forEach(n => {
+      if (!nodeMap[n]) nodeMap[n]={id:n,col:colOf(n),author:true,sent:0,recv:0};
+      if (n===a.s) nodeMap[n].sent++; else nodeMap[n].recv++;
+    });
+
+    if (showCited)
+      a.pers.forEach(n => { if (!nodeMap[n]) nodeMap[n]={id:n,col:'#5fc47a',author:false,sent:0,recv:0,mentionedBy:a.s}; });
+
+    const ek=[a.s,a.r].sort().join('|||');
+    if (!edgeMap[ek]) edgeMap[ek]={a:a.s,b:a.r,cnt:0,dash:false};
+    edgeMap[ek].cnt++;
+
+    if (showCited)
+      a.pers.forEach(p => { const k=[a.s,p].sort().join('|||'); if(!edgeMap[k]) edgeMap[k]={a:a.s,b:p,cnt:0,dash:true}; edgeMap[k].cnt++; });
+  });
+
+  const authors = Object.values(nodeMap).filter(n=>n.author);
+  const cited   = Object.values(nodeMap).filter(n=>!n.author);
+  const edges   = Object.values(edgeMap).filter(e=>nodeMap[e.a]&&nodeMap[e.b]);
+
+  if (!authors.length) {
+    if (_netChart) { _netChart.dispose(); _netChart = null; }
+    el.innerHTML='<div class="empty"><div class="empty-ico">◎</div><p>No results for this filter</p></div>';
+    return;
+  }
+  if (infoEl) infoEl.textContent=`${authors.length+cited.length} nodes · ${edges.length} edges · ${letterCount} letter(s)`;
+
+  /* ── ECharts nodes & links ── */
+  const eNodes = Object.values(nodeMap).map(n => {
+    const cnt = n.sent + n.recv;
+    const baseSize = n.author ? Math.min(52, 22 + cnt * 4) : 14;
+    return {
+      id: n.id,
+      name: n.id,
+      symbolSize: baseSize,
+      itemStyle: {
+        color: {
+          type: 'radial',
+          x: 0.4, y: 0.35, r: 1,
+          colorStops: [
+            { offset: 0, color: lightenHex(n.col, 0.38) },
+            { offset: 1, color: n.col }
+          ]
+        },
+        borderColor: n.author ? lightenHex(n.col, 0.55) : '#aee8c0',
+        borderWidth: n.author ? 2 : 1.5,
+        shadowBlur: n.author ? 14 : 6,
+        shadowColor: n.col + '88'
+      },
+      label: {
+        show: showLabels && n.author,
+        formatter: n.id,
+        fontSize: 10,
+        fontFamily: 'JetBrains Mono,monospace',
+        fontWeight: '600',
+        color: '#0a1e36',
+        position: 'bottom',
+        distance: 4,
+        textBorderColor: '#e8f0f8',
+        textBorderWidth: 2
+      },
+      category: n.author ? 0 : 1,
+      value: cnt,
+      _author: n.author
+    };
+  });
+
+  const eLinks = edges.map(e => ({
+    source: e.a,
+    target: e.b,
+    value: e.cnt,
+    lineStyle: {
+      width: e.dash ? 1 : Math.min(1.5 + e.cnt * 1.2, 7),
+      color: e.dash ? '#a0b8c8' : colOf(e.a),
+      opacity: e.dash ? 0.28 : 0.7,
+      type: e.dash ? 'dashed' : 'solid',
+      curveness: 0.1
+    },
+    label: {
+      show: !e.dash && e.cnt > 1,
+      formatter: `${e.cnt}`,
+      fontSize: 9,
+      color: '#4a7aa5',
+      fontFamily: 'JetBrains Mono,monospace'
+    }
+  }));
+
+  /* ── ECharts init / update ── */
+  if (!_netChart || _netChart.isDisposed()) {
+    el.innerHTML = '';
+    _netChart = echarts.init(el, null, { renderer: 'canvas' });
+  }
+
+  const option = {
+    backgroundColor: '#e8f0f8',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: '#0a1e36',
+      borderColor: '#3a5a78',
+      borderWidth: 1,
+      textStyle: { color: '#e8f0f8', fontFamily: 'JetBrains Mono,monospace', fontSize: 11 },
+      formatter: params => {
+        if (params.dataType === 'node') {
+          const n = nodeMap[params.data.id];
+          if (!n) return params.data.id;
+          return n.author
+            ? `<b>${n.id}</b><br/>↑ ${n.sent} env. &nbsp;↓ ${n.recv} reç.`
+            : `<b>${n.id}</b><br/><i>citée</i>`;
+        }
+        if (params.dataType === 'edge') {
+          return `${params.data.source} → ${params.data.target}<br/>${params.data.value} letter(s)`;
+        }
+        return '';
+      }
+    },
+    series: [{
+      type: 'graph',
+      layout: 'force',
+      data: eNodes,
+      links: eLinks,
+      roam: true,
+      draggable: true,
+      force: {
+        repulsion: 220,
+        gravity: 0.06,
+        edgeLength: [80, 200],
+        layoutAnimation: true
+      },
+      emphasis: {
+        focus: 'adjacency',
+        lineStyle: { width: 6 }
+      },
+      lineStyle: { color: 'source' },
+      edgeSymbol: ['none', 'none'],
+      animation: true,
+      animationDuration: 800,
+      animationEasingUpdate: 'quinticInOut'
+    }]
+  };
+
+  _netChart.setOption(option, true);
+
+  /* click on author node → set focus filter */
+  _netChart.off('click');
+  _netChart.on('click', params => {
+    if (params.dataType === 'node' && nodeMap[params.data.id]?.author) {
+      const name = params.data.id;
+      if (focusSel) { focusSel.value = focusSel.value === name ? '' : name; renderNet(); }
+    }
+  });
+
+  /* resize observer */
+  if (!el._netResizeObs) {
+    el._netResizeObs = new ResizeObserver(() => _netChart && !_netChart.isDisposed() && _netChart.resize());
+    el._netResizeObs.observe(el);
+  }
+}
+
+/* Helper: lighten a hex color by factor (0–1) */
+function lightenHex(hex, factor) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const lr = Math.round(r + (255-r)*factor), lg = Math.round(g + (255-g)*factor), lb = Math.round(b + (255-b)*factor);
+  return '#' + [lr,lg,lb].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+
+function netNodeClick(name) {
+  const isAuthor = SEL.some(l => acc(l).s===name || acc(l).r===name);
+  if (!isAuthor) return;
+  const focusSel = document.getElementById('net-focus');
+  if (focusSel) { focusSel.value = focusSel.value===name ? '' : name; renderNet(); }
+}
+
+const Lm=L.map.bind(L),Lt=L.tileLayer.bind(L),Lp=L.polyline.bind(L),Lc=L.circleMarker.bind(L);
+let MAP=null, ML=[];
+function renderMap() {
+  if (!MAP) { MAP=Lm('map-el').setView([47,3],5); Lt('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:18}).addTo(MAP); }
+  ML.forEach(x=>x.remove()); ML.length=0;
+  const pc={},pco={};
+  SEL.forEach(l => {
+    const a=acc(l);
+    [a.sp,a.rp].forEach(p => pc[p]=(pc[p]||0)+1);
+    if (!pco[a.sp]) pco[a.sp]=[a.slat,a.slon];
+    if (!pco[a.rp]) pco[a.rp]=[a.rlat,a.rlon];
+    if (a.slat && a.rlat && (a.slat!==a.rlat||a.slon!==a.rlon)) { const x=Lp([[a.slat,a.slon],[a.rlat,a.rlon]],{color:'#1a3a5c',weight:1.2,opacity:.35,dashArray:'3,5'}).addTo(MAP); ML.push(x); }
+  });
+  Object.entries(pco).forEach(([n,[lat,lon]]) => {
+    if (!lat || !lon) return;
+    const r=Math.min(8+(pc[n]||1)*3,28);
+    const m=Lc([lat,lon],{radius:r,fillColor:'#1a3a5c',color:'#6a9abf',weight:1.5,fillOpacity:.75})
+      .bindTooltip(`<span style="font-family:monospace;font-size:11px;color:#0d1e2e"><b>${n}</b><br>${pc[n]||0} letter(s)</span>`,{sticky:true}).addTo(MAP);
+    ML.push(m);
+  });
+  setTimeout(()=>MAP.invalidateSize(),80);
+}
+
+function renderTL() {
+  const el   = document.getElementById('tl-el');
+  const mode = document.getElementById('tl-mode')?.value || 'all';
+  const view = document.getElementById('tl-view')?.value || 'hist';
+  const pSel = document.getElementById('tl-person');
+  const info = document.getElementById('tl-info');
+
+  // Populate person selector when mode changes
+  const allNames = [...new Set([...SEL.map(l=>acc(l).s),...SEL.map(l=>acc(l).r)])].sort();
+  if(pSel) {
+    const prev = pSel.value;
+    pSel.innerHTML = '<option value="">— Tous —</option>';
+    allNames.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;pSel.appendChild(o);});
+    if(allNames.includes(prev)) pSel.value=prev;
+    pSel.style.display = mode==='all' ? 'none' : '';
+  }
+
+  const personFilter = (mode !== 'all' && pSel?.value) ? pSel.value : null;
+  let letters = [...SEL];
+  if(personFilter) {
+    letters = letters.filter(l => mode==='sender' ? acc(l).s===personFilter : acc(l).r===personFilter);
+  }
+
+  if(!letters.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">⊣</div><p>NO LETTERS for this selection</p></div>';
+    if(info) info.textContent='';
+    return;
+  }
+
+  const sorted = letters.sort((a,b)=>acc(a).d.localeCompare(acc(b).d));
+  const PAL = {'Victor Hugo':'#3a7aaf','George Sand':'#7aaf3a','Balzac':'#af8a3a','Émile Zola':'#af3a8a','Paul Cézanne':'#3aafaf','Charles Baudelaire':'#af3a3a','Gustave Flaubert':'#8a3aaf','Alexandre Dumas':'#afaf3a'};
+  const DEF = '#6a8aaa';
+  const colOf = n => PAL[n] || DEF;
+  const yrs = sorted.map(l=>acc(l).yr);
+  const mnY = Math.min(...yrs), mxY = Math.max(...yrs);
+  const yearSpan = mxY - mnY + 1;
+
+  window._tlSorted = sorted;
+  if(info) info.textContent = `${sorted.length} letter(s) · ${mnY}–${mxY}`;
+
+  const PL=52, PR=24, PT=36, PB=46;
+  const W = Math.max(600, yearSpan*68 + PL + PR);
+
+  if(view === 'hist') {
+    /* ── HISTOGRAMME : barres empilées par expéditeur pour chaque année ── */
+    const yearBuckets = {}; // year → { sender → [letters] }
+    for(let y=mnY; y<=mxY; y++) yearBuckets[y] = {};
+    sorted.forEach(l=>{
+      const a=acc(l); const y=a.yr;
+      if(!yearBuckets[y][a.s]) yearBuckets[y][a.s]=[];
+      yearBuckets[y][a.s].push(l);
+    });
+    const maxCount = Math.max(...Object.values(yearBuckets).map(b=>Object.values(b).reduce((s,v)=>s+v.length,0)));
+    const H = 340;
+    const chartH = H - PT - PB;
+    const barW = Math.max(18, Math.min(50, (W-PL-PR)/yearSpan - 6));
+    const xOfYear = y => PL + (y-mnY)/yearSpan*(W-PL-PR) + (W-PL-PR)/yearSpan/2;
+    const yOfCount = c => PT + chartH - (c/Math.max(maxCount,1))*chartH;
+
+    let svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;min-width:${W}px;">`;
+    svg += `<rect width="${W}" height="${H}" fill="#e8f0f8"/>`;
+
+    // Y grid lines
+    const ticks = maxCount <= 5 ? [...Array(maxCount+1).keys()] : [0,Math.round(maxCount/4),Math.round(maxCount/2),Math.round(3*maxCount/4),maxCount];
+    ticks.forEach(t=>{
+      const y=yOfCount(t);
+      svg+=`<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="#c8daf0" stroke-width="${t===0?1.5:.8}" stroke-dasharray="${t===0?'':'4,3'}"/>`;
+      svg+=`<text x="${PL-5}" y="${y+4}" text-anchor="end" font-size="9" fill="#4a7aa5" font-family="JetBrains Mono,monospace">${t}</text>`;
+    });
+
+    // Stacked bars + year labels
+    for(let y=mnY; y<=mxY; y++){
+      const cx = xOfYear(y);
+      const bucket = yearBuckets[y];
+      const senders = Object.keys(bucket);
+      let stackY = PT + chartH;
+      const total = senders.reduce((s,k)=>s+bucket[k].length,0);
+
+      senders.forEach(s=>{
+        const cnt = bucket[s].length;
+        const bH = (cnt/Math.max(maxCount,1))*chartH;
+        const col = colOf(s);
+        // Each bar = one group of letters for that sender that year
+        const lettersInBar = bucket[s];
+        svg += `<g style="cursor:pointer" onclick="tlBarClick(${y},'${s.replace(/'/g,"\'")}')">`;
+        svg += `<rect x="${cx-barW/2}" y="${stackY-bH}" width="${barW}" height="${bH}" fill="${col}" opacity=".82" rx="2">`;
+        svg += `<title>${s} · ${y} · ${cnt} letter(s)</title></rect>`;
+        // count label inside bar if tall enough
+        if(bH > 14) svg += `<text x="${cx}" y="${stackY-bH/2+4}" text-anchor="middle" font-size="9" font-weight="600" font-family="JetBrains Mono,monospace" fill="#fff" pointer-events="none">${cnt}</text>`;
+        svg += `</g>`;
+        stackY -= bH;
+      });
+
+      // total label above bar
+      if(total>0) svg += `<text x="${cx}" y="${yOfCount(total)-4}" text-anchor="middle" font-size="9" fill="#0a1e36" font-family="JetBrains Mono,monospace">${total}</text>`;
+
+      // year label on axis
+      svg += `<text x="${cx}" y="${H-PB+16}" text-anchor="middle" font-size="10" fill="#0a1e36" font-family="JetBrains Mono,monospace" font-weight="${y%5===0?'600':'400'}">${y}</text>`;
+      // tick
+      svg += `<line x1="${cx}" y1="${H-PB}" x2="${cx}" y2="${H-PB+5}" stroke="#1a3a5c" stroke-width="1"/>`;
+    }
+
+    // X axis
+    svg += `<line x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}" stroke="#1a3a5c" stroke-width="1.5"/>`;
+
+    // Y axis label
+    svg += `<text x="11" y="${H/2}" text-anchor="middle" font-size="9" fill="#4a7aa5" font-family="JetBrains Mono,monospace" transform="rotate(-90,11,${H/2})">No. letters</text>`;
+
+    svg += `</svg>`;
+    el.innerHTML = svg;
+
+  } else if(view === 'month') {
+    /* ── HISTOGRAMME PAR MOIS ── */
+    // Build month key from date
+    const getMonthKey = d => {
+      if (!d || d==='—') return null;
+      if (/^\d{4}-/.test(d)) return d.slice(0,7); // YYYY-MM
+      const p = d.split(/[\.\-\/]/);
+      if (p.length >= 3) {
+        let y=+p[2], mo=+p[1], day=+p[0];
+        if (y < 100) y = y>=60 ? 1900+y : 2000+y;
+        // detect if format is YYYY-MM-DD
+        if (p[0].length===4) { y=+p[0]; mo=+p[1]; }
+        return `${y}-${String(mo).padStart(2,'0')}`;
+      }
+      return null;
+    };
+    const monthKeys = [...new Set(sorted.map(l=>getMonthKey(acc(l).d)).filter(Boolean))].sort();
+    if (!monthKeys.length) { el.innerHTML='<div class="empty"><div class="empty-ico">⊣</div><p>INSUFFICIENT DATES</p></div>'; return; }
+    const monthBuckets = {};
+    monthKeys.forEach(k => monthBuckets[k]={});
+    sorted.forEach(l=>{ const a=acc(l); const k=getMonthKey(a.d); if(k){ if(!monthBuckets[k][a.s]) monthBuckets[k][a.s]=[]; monthBuckets[k][a.s].push(l); }});
+    const maxCountM = Math.max(...Object.values(monthBuckets).map(b=>Object.values(b).reduce((s,v)=>s+v.length,0)));
+    const H=340, chartH=H-PT-PB;
+    const Wm = Math.max(600, monthKeys.length*40+PL+PR);
+    const barWm = Math.max(14, Math.min(34, (Wm-PL-PR)/monthKeys.length-4));
+    const xOfMonth = i => PL + i/monthKeys.length*(Wm-PL-PR) + (Wm-PL-PR)/monthKeys.length/2;
+    const yOfCnt = c => PT + chartH - (c/Math.max(maxCountM,1))*chartH;
+    let svg=`<svg width="${Wm}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;min-width:${Wm}px;">`;
+    svg+=`<rect width="${Wm}" height="${H}" fill="#e8f0f8"/>`;
+    const ticksM = maxCountM<=5 ? [...Array(maxCountM+1).keys()] : [0,Math.round(maxCountM/4),Math.round(maxCountM/2),Math.round(3*maxCountM/4),maxCountM];
+    ticksM.forEach(t=>{ const y=yOfCnt(t); svg+=`<line x1="${PL}" y1="${y}" x2="${Wm-PR}" y2="${y}" stroke="#c8daf0" stroke-width="${t===0?1.5:.8}" stroke-dasharray="${t===0?'':'4,3'}"/>`; svg+=`<text x="${PL-5}" y="${y+4}" text-anchor="end" font-size="9" fill="#4a7aa5" font-family="JetBrains Mono,monospace">${t}</text>`; });
+    monthKeys.forEach((mk,mi)=>{
+      const cx=xOfMonth(mi); const bucket=monthBuckets[mk]; const senders=Object.keys(bucket);
+      let stackY=PT+chartH; const total=senders.reduce((s,k)=>s+bucket[k].length,0);
+      senders.forEach(s=>{ const cnt=bucket[s].length; const bH=(cnt/Math.max(maxCountM,1))*chartH; const col=colOf(s);
+        svg+=`<g style="cursor:pointer" onclick="tlBarClick2('${mk}','${s.replace(/'/g,"\'")}')">`;
+        svg+=`<rect x="${cx-barWm/2}" y="${stackY-bH}" width="${barWm}" height="${bH}" fill="${col}" opacity=".82" rx="2"><title>${s} · ${mk} · ${cnt} letter(s)</title></rect>`;
+        if(bH>14) svg+=`<text x="${cx}" y="${stackY-bH/2+4}" text-anchor="middle" font-size="9" font-weight="600" font-family="JetBrains Mono,monospace" fill="#fff" pointer-events="none">${cnt}</text>`;
+        svg+=`</g>`; stackY-=bH;
+      });
+      if(total>0) svg+=`<text x="${cx}" y="${yOfCnt(total)-4}" text-anchor="middle" font-size="9" fill="#0a1e36" font-family="JetBrains Mono,monospace">${total}</text>`;
+      // Label: show YYYY-MM, rotate
+      svg+=`<text x="${cx}" y="${H-PB+8}" text-anchor="end" font-size="8" fill="#0a1e36" font-family="JetBrains Mono,monospace" transform="rotate(-45,${cx},${H-PB+8})">${mk}</text>`;
+      svg+=`<line x1="${cx}" y1="${H-PB}" x2="${cx}" y2="${H-PB+4}" stroke="#1a3a5c" stroke-width="1"/>`;
+    });
+    svg+=`<line x1="${PL}" y1="${H-PB}" x2="${Wm-PR}" y2="${H-PB}" stroke="#1a3a5c" stroke-width="1.5"/>`;
+    svg+=`<text x="11" y="${H/2}" text-anchor="middle" font-size="9" fill="#4a7aa5" font-family="JetBrains Mono,monospace" transform="rotate(-90,11,${H/2})">No. letters</text>`;
+    svg+=`</svg>`;
+    el.innerHTML=svg;
+
+  } else {
+    /* ── DOT PLOT : un point par lettre, axe X = mois exact ── */
+    const H = 320;
+    const chartH = H - PT - PB;
+    const actors = [...new Set(sorted.map(l=>acc(l).s))].sort();
+    const rowH = Math.max(20, chartH / Math.max(actors.length,1));
+    const dynamicH = PT + actors.length*rowH + PB;
+
+    // Parse any date format → decimal year
+    const parseDecYear = d => {
+      if (!d || d==='—') return null;
+      let y, mo=1;
+      if (/^\d{4}-/.test(d)) { y=+d.slice(0,4); mo=+d.slice(5,7)||1; }
+      else {
+        const p=d.split(/[\.\-\/]/);
+        if(p.length>=3){
+          if(p[0].length===4){ y=+p[0]; mo=+p[1]; }
+          else { y=+p[2]; mo=+p[1]; if(y<100) y=y>=60?1900+y:2000+y; }
+        } else return null;
+      }
+      if (y < 1900 || y > 2100) return null; // ignore dates aberrantes
+      return y+(mo-1)/12;
+    };
+    const decYears = sorted.map(l=>parseDecYear(acc(l).d)).filter(v=>v!==null);
+    if(!decYears.length){ el.innerHTML='<div class="empty"><div class="empty-ico">⊣</div><p>INSUFFICIENT DATES</p></div>'; return; }
+    const mnDec=Math.min(...decYears), mxDec=Math.max(...decYears);
+    const decSpan=Math.max(mxDec-mnDec,0.1);
+    const maxLabelLen=Math.max(8,...actors.map(s=>s.length));
+    const DPL=Math.max(90,maxLabelLen*7+12);
+    const rowH2=24;
+    const dynamicH2=PT+actors.length*rowH2+PB;
+    const elRect=el.getBoundingClientRect();
+    const elW=Math.max(700, elRect.width || el.offsetWidth || 800);
+    const Wd=Math.max(elW, Math.round(decSpan*80)+DPL+PR);
+    const xOfDec=v=>DPL+((v-mnDec)/decSpan)*(Wd-DPL-PR);
+    const yOfActor=s=>PT+actors.indexOf(s)*rowH2+rowH2/2;
+
+    let svg=`<svg width="${Wd}" height="${dynamicH2}" xmlns="http://www.w3.org/2000/svg" style="display:block;min-width:${Wd}px;">`;
+    svg+=`<rect width="${Wd}" height="${dynamicH2}" fill="#e8f0f8"/>`;
+    const mnYi=Math.floor(mnDec),mxYi=Math.ceil(mxDec);
+    for(let y=mnYi;y<=mxYi+1;y++){
+      const x=xOfDec(y);
+      svg+=`<line x1="${x}" y1="${PT-8}" x2="${x}" y2="${dynamicH2-PB}" stroke="#c8daf0" stroke-width="${y%5===0?1.2:.6}" stroke-dasharray="3,4"/>`;
+      svg+=`<text x="${x}" y="${dynamicH2-PB+16}" text-anchor="middle" font-size="10" fill="#0a1e36" font-family="JetBrains Mono,monospace" font-weight="${y%5===0?'600':'400'}">${y}</text>`;
+    }
+    svg+=`<line x1="${DPL}" y1="${dynamicH2-PB}" x2="${Wd-PR}" y2="${dynamicH2-PB}" stroke="#1a3a5c" stroke-width="1.5"/>`;
+    actors.forEach(s=>{
+      const cy=yOfActor(s),col=colOf(s);
+      svg+=`<line x1="${DPL}" y1="${cy}" x2="${Wd-PR}" y2="${cy}" stroke="${col}" stroke-width=".4" opacity=".25"/>`;
+      svg+=`<text x="${DPL-6}" y="${cy+4}" text-anchor="end" font-size="9.5" fill="${col}" font-weight="600" font-family="JetBrains Mono,monospace">${s}</text>`;
+    });
+    sorted.forEach((letter,idx)=>{
+      const a=acc(letter);
+      const dv=parseDecYear(a.d);
+      if(dv===null) return;
+      const x=xOfDec(dv),cy=yOfActor(a.s),col=colOf(a.s);
+      svg+=`<g style="cursor:pointer" onclick="openDrawer(window._tlSorted,${idx})">`;
+      svg+=`<circle cx="${x}" cy="${cy}" r="6" fill="${col}" stroke="#fff" stroke-width="1.5" opacity=".88"><title>${a.id} · ${a.s} → ${a.r}\n${a.d}\n${a.txt.slice(0,80)}</title></circle>`;
+      svg+=`<text x="${x}" y="${cy-9}" text-anchor="middle" font-size="7" fill="${col}" font-family="JetBrains Mono,monospace" pointer-events="none">${a.id}</text>`;
+      svg+=`</g>`;
+    });
+
+    svg += `</svg>`;
+    el.innerHTML = svg;
+    addDragScroll('tl-el');
+  }
+}
+
+/* Open drawer for all letters in a year/sender bar */
+function tlBarClick2(monthKey, sender) {
+  const getMonthKey = d => {
+    if (!d || d==='—') return null;
+    if (/^\d{4}-/.test(d)) return d.slice(0,7);
+    const p = d.split(/[\.\-\/]/);
+    if (p.length >= 3) {
+      let y=+p[2], mo=+p[1];
+      if (p[0].length===4) { y=+p[0]; mo=+p[1]; }
+      if (y<100) y=y>=60?1900+y:2000+y;
+      return `${y}-${String(mo).padStart(2,'0')}`;
+    }
+    return null;
+  };
+  const matches = [...SEL].filter(l=>getMonthKey(acc(l).d)===monthKey && acc(l).s===sender)
+                          .sort((a,b)=>acc(a).d.localeCompare(acc(b).d));
+  if(!matches.length) return;
+  window._tlSorted = matches;
+  openDrawer(matches, 0);
+}
+
+function tlBarClick(year, sender) {
+  const matches = [...SEL].filter(l=>acc(l).yr===year && acc(l).s===sender)
+                          .sort((a,b)=>acc(a).d.localeCompare(acc(b).d));
+  if(!matches.length) return;
+  window._tlSorted = matches;
+  openDrawer(matches, 0);
+}
+
+function renderWC() {
+  const wrap=document.getElementById('wc-inner'), freq={};
+  const wcCountEl=document.getElementById('wc-count');
+  const maxWords = wcCountEl ? +wcCountEl.value : 60;
+  const wcLang = (document.getElementById('wc-lang')?.value) || 'all';
+  const wcInfo = document.getElementById('wc-info');
+  const STOP=new Set([
+    // French
+    'un','une','des','les','le','la','de','du','en','à','et','au','sur','par','pour','que','qui','est','il','se','ou','avec','dans','ce','ne','pas','plus','son','sa','ses','leur','nous','vous','ils','je','tu','on','me','te','lui','si','mais','donc','ni','car','très','tout','bien','comme','même','aussi','votre','voici','dont','cher','chère','cette','notre','avoir','être','faire','dire','aller','voir','vouloir','pouvoir','venir','prendre','donner','savoir','mettre','fois','toujours','encore','jamais','lettres','écrit','écrire','reçu','ami','amie','monsieur','madame','moi','elle','eux','deux',
+    // Arabic
+    'و','في','من','على','إلى','أن','هذا','هذه','كان','لا','ما','مع','هو','هي','أو','بعد','كل','عن','قد','لم','يا','بي','لي','له','بك','لك','به','وأن','وما','فإن','التي','الذي','الله','وبعد','سلام','عليك','عليكم','وسلام','رحمة','وبركاته','إني','أني','وأنا','وإنني','منكم','إليك','وأخي','ربي','أخي','بسم','وحده','انا','وانا','ولا','وكان','وقد','الذين','التي','هذا','ذلك','تلك','كانت','يكون','تكون','وهو','وهي','فهو','فهي','ومن','وفي','وعلى','وإلى','منه','منها','عليه','عليها','إنه','إنها','لأن','حتى','إذا','لكن','بل','ثم','أما','وأما','كما','مما','عما','فما','ولم','ولا','فلا','قال','قالت','يقول','راه','واد','متاع','وراه','ببه','هاي'
+  ]);
+  const isArabicWord = w => /[\u0600-\u06FF]/.test(w);
+  SEL.forEach(l => {
+    const a=acc(l);
+    // Filtre langue
+    if(wcLang==='ar'  && !/[\u0600-\u06FF]/.test(a.txt)) return;
+    if(wcLang==='fr'  &&  /[\u0600-\u06FF]/.test(a.txt)) return;
+    // Tokenisation mixte arabe + latin
+    a.txt.replace(/[^\u0600-\u06FFa-zàâçéèêëîïôùûüÿæœ\s]/gi,'').split(/\s+/).forEach(w=>{
+      if(w.length>2 && !STOP.has(w) && !STOP.has(w.toLowerCase())) {
+        if(wcLang==='all' || (wcLang==='ar' && isArabicWord(w)) || (wcLang==='fr' && !isArabicWord(w)))
+          freq[w]=(freq[w]||0)+1;
+      }
+    });
+  });
+  const words=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,maxWords);
+  // Remove previous SVG/canvas
+  wrap.innerHTML='';
+  if(wcInfo) wcInfo.textContent = words.length ? `${words.length} terms displayed` : '';
+  if (!words.length) { const d=document.createElement('div'); d.className='empty'; d.innerHTML='<div class="empty-ico">≋</div><p>NO TERMS</p>'; wrap.appendChild(d); return; }
+  const W=Math.max(400,wrap.offsetWidth||wrap.parentElement?.offsetWidth||820), H=Math.max(300,wrap.offsetHeight||wrap.parentElement?.offsetHeight||500);
+  const pal2=['#1a3a5c','#2a6a3a','#8a2a1a','#7a5a10','#5a1a5a','#1a5a5a','#3a1a7a','#5a5a10'];
+  const maxF=words[0][1];
+  const mc=document.createElement('canvas'), mctx=mc.getContext('2d');
+  const placed=[], items=[];
+  words.forEach(([word,cnt],i)=>{
+    const sz=Math.max(11,Math.round(12+(cnt/maxF)*40)),fw=cnt>maxF*.6?'600':cnt>maxF*.3?'500':'400',col2=pal2[i%pal2.length];
+    // Measure word + superscript approximation
+    mctx.font=`${fw} ${sz}px JetBrains Mono,monospace`;
+    const tw2=mctx.measureText(word).width + sz * 0.7; // extra space for superscript freq
+    for(let t=0;t<300;t++){
+      const ang=(t*137.5*Math.PI/180),r=t*2.8;
+      let x=W/2+r*Math.cos(ang)-tw2/2, y=H/2+r*Math.sin(ang)+sz/3;
+      x=Math.max(6,Math.min(W-tw2-6,x)); y=Math.max(sz+6,Math.min(H-6,y));
+      if(!placed.some(p=>x<p.x+p.w+4&&x+tw2+4>p.x&&y-sz<p.y+4&&y+4>p.y-p.h)){
+        placed.push({x,y,w:tw2,h:sz}); items.push({word,cnt,x,y,sz,fw,col2}); break;
+      }
+    }
+  });
+  const opacity=i=>(.45+.55*(items[i]?.cnt||1)/maxF).toFixed(2);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;position:absolute;top:0;left:0;">`;
+  svg+=`<rect width="${W}" height="${H}" fill="#e8f0f8"/>`;
+  items.forEach(({word,cnt,x,y,sz,fw,col2},i)=>{
+    const supSz = Math.max(7, Math.round(sz * 0.52));
+    const supDy = -Math.round(sz * 0.45);
+    svg+=`<text x="${x}" y="${y}" font-size="${sz}" font-weight="${fw}" font-family="JetBrains Mono,monospace" fill="${col2}" opacity="${opacity(i)}" style="cursor:default"><title>${word} (${cnt}×)</title>${word}<tspan font-size="${supSz}" dy="${supDy}" fill="${col2}" opacity=".75">${cnt}</tspan></text>`;
+  });
+  svg+=`</svg>`;
+  const svgEl = document.createElement('div');
+  svgEl.style.cssText='position:absolute;inset:0;';
+  svgEl.innerHTML=svg;
+  wrap.appendChild(svgEl.firstChild);
+  addDragScroll('wc-inner');
+}
+
+/* ═══════════════════════════════════════
+   ONGLETS
+   ═══════════════════════════════════════ */
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active'); document.getElementById('pane-'+tab).classList.add('active'); curTab=tab;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if(tab==='net') renderNet(); else if(tab==='map') renderMap(); else if(tab==='tl') renderTL(); else if(tab==='wc') setTimeout(renderWC,50); else if(tab==='cl') renderClusters();
+  }));
+}
+
+/* ═══════════════════════════════════════
+   DRAG-TO-SCROLL (Chronologie, Nuage, Clusters)
+   ═══════════════════════════════════════ */
+function addDragScroll(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let drag=false, sx=0, sy=0, sl=0, st=0;
+  el.style.cursor='grab';
+  el.addEventListener('mousedown', e=>{
+    if(e.target.closest('g[onclick],button,select,input')) return;
+    drag=true; sx=e.clientX; sy=e.clientY;
+    sl=el.scrollLeft; st=el.scrollTop;
+    el.style.cursor='grabbing'; e.preventDefault();
+  });
+  el.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    el.scrollLeft = sl-(e.clientX-sx);
+    el.scrollTop  = st-(e.clientY-sy);
+  });
+  el.addEventListener('mouseup',   ()=>{ drag=false; el.style.cursor='grab'; });
+  el.addEventListener('mouseleave',()=>{ drag=false; el.style.cursor='grab'; });
+}
+['tl-el'].forEach(addDragScroll);
+
+/* ═══════════════════════════════════════
+   FOOTER & EXPORT
+   ═══════════════════════════════════════ */
+function updateFooter() {
+  const au=new Set([...SEL.map(l=>acc(l).s),...SEL.map(l=>acc(l).r)]);
+  const yrs=SEL.map(l=>acc(l).yr).filter(Boolean), lo=yrs.length?Math.min(...yrs):'—', hi=yrs.length?Math.max(...yrs):'—';
+  document.getElementById('fstat').innerHTML=`SELECTION : <strong>${SEL.length}</strong> entries · <strong>${au.size}</strong> actors · Δt ${lo}–${hi}`;
+}
+
+// coords removed
+
+function exportCSV() {
+  const h=['id','date_envoi','date_recep','expediteur','destinataire','lieu_envoi','lieu_recep','texte','personnes','lieux','objets'];
+  const rows=SEL.map(l=>{const a=acc(l);return[l.id,a.d,l.metadata.date.received,a.s,a.r,a.sp,a.rp,`"${a.txt.replace(/"/g,'""')}"`,`"${a.pers.join(';')}"`,`"${a.locs.join(';')}"`,`"${a.objs.join(';')}"`].join(',');});
+  const blob=new Blob(['\uFEFF'+[h.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='corpus_selection.csv'; a.click();
+}
+
+/* ═══════════════════════════════════════
+   RENDER PRINCIPAL
+   ═══════════════════════════════════════ */
+function render() {
+  bfacets(); renderRes(); updateFooter();
+  if(curTab==='net') renderNet(); else if(curTab==='map') renderMap(); else if(curTab==='tl') renderTL(); else if(curTab==='wc') setTimeout(renderWC,50); else if(curTab==='cl') clMarkStale();
+}
+
+/* ═══════════════════════════════════════
+   INIT (D. chargement externe avec fallback)
+   ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   CLUSTERING TF-IDF + K-MEANS
+   ═══════════════════════════════════════ */
+
+const CL_PALETTE = ['#1a4a8c','#c0392b','#27ae60','#e67e22','#8e44ad','#16a085'];
+const CL_PALETTE_BG = ['rgba(26,74,140,.09)','rgba(192,57,43,.09)','rgba(39,174,96,.09)','rgba(230,126,34,.09)','rgba(142,68,173,.09)','rgba(22,160,133,.09)'];
+
+const STOP_FR_CL = new Set([
+  'un','une','des','les','le','la','de','du','en','à','et','au','sur','par','pour',
+  'que','qui','est','il','se','ou','avec','dans','ce','ne','pas','plus','son','sa',
+  'ses','leur','nous','vous','ils','je','tu','on','me','te','lui','si','mais','donc',
+  'ni','car','très','tout','bien','comme','même','aussi','votre','voici','dont','cher',
+  'chère','cette','notre','tout','monsieur','madame','moi','vous','lui','elle','eux',
+  'être','avoir','faire','dire','aller','voir','vouloir','pouvoir','falloir','venir',
+  'prendre','donner','savoir','mettre','deux','fois','toujours','encore','jamais',
+  'lettre','lettres','écrit','écrire','reçu','cher','chère','ami','amie','vous'
+]);
+
+const STOP_AR_CL = new Set([
+  'في','من','إلى','على','أن','هذا','هذه','التي','الذي','كان','كانت','قد','لا','ما',
+  'مع','عن','هو','هي','كل','لقد','إن','أو','بعد','قبل','حتى','لم','لن','ليس','غير',
+  'تلك','ذلك','هنا','هناك','بين','عند','منذ','خلال','بسبب','لأن','لكن','ولكن','بل',
+  'ثم','حيث','إذ','إذا','لو','كما','أيضا','جدا','فقط','بعض','نحن','أنت','أنا','هم',
+  'هن','أنتم','كان','يكون','وقد','وكان','وهو','وهي','وهم','قال','قالت','أي','كل',
+  'رسالة','رسائل','عزيزي','عزيزتي','محترم','سيدي'
+]);
+
+/* Détecte la langue dominante du corpus courant */
+function detectCorpusLang(letters) {
+  if (!letters.length) return 'fr';
+  const arCount = letters.filter(l => {
+    const a = acc(l);
+    return a.lang === 'ar' || /[\u0600-\u06FF]/.test(a.txt);
+  }).length;
+  return arCount > letters.length / 2 ? 'ar' : 'fr';
+}
+
+/* Normalisation arabe */
+function normalizeAr(txt) {
+  return txt
+    .replace(/[\u064B-\u065F\u0670]/g, '')   // diacritiques
+    .replace(/[أإآٱ]/g, 'ا')                  // alef
+    .replace(/ة/g, 'ه')                       // ta marbuta
+    .replace(/ى/g, 'ي');                      // alef maqsura
+}
+
+/* Tokenisation selon langue */
+function clTokenize(txt, lang) {
+  if (lang === 'ar') {
+    return normalizeAr(txt)
+      .replace(/[^\u0600-\u06FF\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !STOP_AR_CL.has(w));
+  }
+  return txt.toLowerCase()
+    .replace(/[^a-zàâçéèêëîïôùûüÿæœ\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !STOP_FR_CL.has(w));
+}
+
+/* Construit les vecteurs TF-IDF */
+function buildTFIDF(letters, lang) {
+  // Tokens par document : texte + entités (pondérées ×2)
+  const docs = letters.map(l => {
+    const a = acc(l);
+    const entities = [...a.pers, ...a.locs, ...a.objs].join(' ');
+    const base = clTokenize(a.txt, lang);
+    const ent  = clTokenize(entities, lang);
+    return [...base, ...ent, ...ent]; // entités comptées double
+  });
+
+  // DF (document frequency) par terme
+  const df = {};
+  docs.forEach(tokens => {
+    new Set(tokens).forEach(t => df[t] = (df[t] || 0) + 1);
+  });
+
+  const N = docs.length;
+  // Pour petits corpus : garde tout terme qui n'est pas dans TOUS les docs
+  const terms = Object.keys(df).filter(t => df[t] < N);
+  if (!terms.length) return null;
+
+  const termIdx = Object.fromEntries(terms.map((t, i) => [t, i]));
+  const idf = Object.fromEntries(terms.map(t => [t, Math.log((N + 1) / (df[t] + 1)) + 1]));
+
+  // Vecteur TF-IDF normalisé L2 pour chaque doc
+  const vectors = docs.map(tokens => {
+    const tf = {};
+    tokens.forEach(t => tf[t] = (tf[t] || 0) + 1);
+    const total = tokens.length || 1;
+    const vec = new Float32Array(terms.length);
+    Object.entries(tf).forEach(([t, cnt]) => {
+      if (termIdx[t] !== undefined)
+        vec[termIdx[t]] = (cnt / total) * idf[t];
+    });
+    let norm = 0; vec.forEach(v => norm += v * v); norm = Math.sqrt(norm) || 1;
+    for (let i = 0; i < vec.length; i++) vec[i] /= norm;
+    return vec;
+  });
+
+  return { vectors, terms, idf };
+}
+
+/* Similarité cosinus (vecteurs déjà normalisés) */
+function clCosine(a, b) {
+  let dot = 0;
+  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+  return dot;
+}
+
+/* K-means avec init k-means++ */
+function clKmeans(vectors, k, maxIter = 60) {
+  const N = vectors.length, dim = vectors[0].length;
+  if (k >= N) k = Math.max(1, N - 1);
+
+  // Init k-means++ : premier centroïde aléatoire, suivants les plus éloignés
+  const cidx = [Math.floor(Math.random() * N)];
+  while (cidx.length < k) {
+    let bestI = -1, bestD = -1;
+    for (let i = 0; i < N; i++) {
+      if (cidx.includes(i)) continue;
+      const d = Math.min(...cidx.map(ci => 1 - clCosine(vectors[i], vectors[ci])));
+      if (d > bestD) { bestD = d; bestI = i; }
+    }
+    if (bestI === -1) break;
+    cidx.push(bestI);
+  }
+
+  let centroids = cidx.map(i => vectors[i].slice());
+  const labels = new Int32Array(N);
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    let changed = false;
+    // Assignation
+    for (let i = 0; i < N; i++) {
+      let best = 0, bestSim = -Infinity;
+      for (let ki = 0; ki < centroids.length; ki++) {
+        const sim = clCosine(vectors[i], centroids[ki]);
+        if (sim > bestSim) { bestSim = sim; best = ki; }
+      }
+      if (labels[i] !== best) { labels[i] = best; changed = true; }
+    }
+    if (!changed) break;
+    // Mise à jour des centroïdes
+    centroids = centroids.map((_, ki) => {
+      const members = [];
+      for (let i = 0; i < N; i++) if (labels[i] === ki) members.push(vectors[i]);
+      if (!members.length) return centroids[ki];
+      const c = new Float32Array(dim);
+      members.forEach(v => v.forEach((val, d) => c[d] += val));
+      let norm = 0; c.forEach(v => norm += v * v); norm = Math.sqrt(norm) || 1;
+      for (let i = 0; i < c.length; i++) c[i] /= norm;
+      return c;
+    });
+  }
+  return { labels, centroids };
+}
+
+/* Top termes d'un centroïde */
+function clTopTerms(centroid, terms, n = 7) {
+  return terms
+    .map((t, i) => ({ t, v: centroid[i] }))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, n)
+    .map(x => x.t)
+    .join('  ·  ');
+}
+
+/* Signale que les filtres ont changé sans relancer le calcul */
+function clMarkStale() {
+  const info = document.getElementById('cl-info');
+  if (info && info.dataset.hasResult === '1') {
+    info.textContent = '⚠ Filtres modifiés — recliquer sur CLUSTERISER';
+  }
+}
+
+/* ── PCA 2D (gram matrix + power iteration) ── */
+function clPCA2D(vectors) {
+  const n = vectors.length;
+  const m = vectors[0].length;
+
+  // Centre les vecteurs
+  const mean = new Float32Array(m);
+  vectors.forEach(v => { for (let j = 0; j < m; j++) mean[j] += v[j] / n; });
+  const Xc = vectors.map(v => { const r = new Float32Array(m); for (let j = 0; j < m; j++) r[j] = v[j] - mean[j]; return r; });
+
+  // Gram matrix G = Xc Xc^T (n×n)
+  const G = Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => { let s = 0; for (let k = 0; k < m; k++) s += Xc[i][k] * Xc[j][k]; return s; })
+  );
+
+  function powerIter(M, steps = 80) {
+    let v = Array.from({ length: n }, () => Math.random() - 0.5);
+    for (let s = 0; s < steps; s++) {
+      const w = v.map((_, i) => M[i].reduce((acc, x, j) => acc + x * v[j], 0));
+      const norm = Math.sqrt(w.reduce((acc, x) => acc + x * x, 0));
+      if (norm < 1e-12) break;
+      v = w.map(x => x / norm);
+    }
+    return v;
+  }
+
+  const v1 = powerIter(G);
+  const lam1 = v1.reduce((s, x, i) => s + x * G[i].reduce((ss, g, j) => ss + g * v1[j], 0), 0);
+  const G2 = G.map((row, i) => row.map((g, j) => g - lam1 * v1[i] * v1[j]));
+  const v2 = powerIter(G2);
+
+  // Ajoute un micro-jitter pour éviter superposition parfaite
+  return v1.map((x, i) => [
+    x  + (Math.random() - 0.5) * 1e-5,
+    v2[i] + (Math.random() - 0.5) * 1e-5
+  ]);
+}
+
+/* Rendu scatter SVG natif */
+function renderScatterSVG(plotEl, points, clusterMeta, allSorted) {
+  plotEl.innerHTML = '';
+  const rect = plotEl.getBoundingClientRect();
+  const W = Math.max(500, rect.width  || plotEl.offsetWidth  || plotEl.parentElement?.offsetWidth  || 600);
+  const H = Math.max(350, rect.height || plotEl.offsetHeight || plotEl.parentElement?.offsetHeight || 420);
+  const PAD = { t: 18, b: 28, l: 22, r: 18 };
+  const iW = W - PAD.l - PAD.r;
+  const iH = H - PAD.t - PAD.b;
+
+  // Normalise coords vers [0,1]
+  const xs = points.map(p => p.px), ys = points.map(p => p.py);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = Math.min(...ys), yMax = Math.max(...ys);
+  const xR = xMax - xMin || 1, yR = yMax - yMin || 1;
+
+  const toSVG = (px, py) => ({
+    x: PAD.l + ((px - xMin) / xR) * iW,
+    y: PAD.t + (1 - (py - yMin) / yR) * iH
+  });
+
+  const tooltip = document.getElementById('cl-tooltip');
+
+  // Build SVG content string (inside a <g> for zoom/pan)
+  let gStr = '';
+
+  // Grille légère
+  for (let i = 0; i <= 4; i++) {
+    const gx = PAD.l + (i / 4) * iW;
+    const gy = PAD.t + (i / 4) * iH;
+    gStr += `<line x1="${gx}" y1="${PAD.t}" x2="${gx}" y2="${PAD.t + iH}" stroke="#b0cce4" stroke-width=".5" stroke-dasharray="3,3"/>`;
+    gStr += `<line x1="${PAD.l}" y1="${gy}" x2="${PAD.l + iW}" y2="${gy}" stroke="#b0cce4" stroke-width=".5" stroke-dasharray="3,3"/>`;
+  }
+
+  // Axes
+  gStr += `<line x1="${PAD.l}" y1="${PAD.t + iH}" x2="${PAD.l + iW}" y2="${PAD.t + iH}" stroke="#3a5a78" stroke-width=".8"/>`;
+  gStr += `<line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t + iH}" stroke="#3a5a78" stroke-width=".8"/>`;
+  gStr += `<text x="${PAD.l + iW / 2}" y="${H - 4}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#3a5a78" letter-spacing=".08em">PCA 1</text>`;
+  gStr += `<text x="10" y="${PAD.t + iH / 2}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#3a5a78" letter-spacing=".08em" transform="rotate(-90,10,${PAD.t + iH / 2})">PCA 2</text>`;
+
+  // Enveloppes convexes légères par cluster (ellipse approx)
+  clusterMeta.forEach(({ rank, col, letters }) => {
+    const pts = points.filter(p => p.rank === rank).map(p => toSVG(p.px, p.py));
+    if (pts.length < 2) return;
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+    const rx = Math.max(18, Math.sqrt(pts.reduce((s, p) => s + (p.x - cx) ** 2, 0) / pts.length) * 1.6);
+    const ry = Math.max(18, Math.sqrt(pts.reduce((s, p) => s + (p.y - cy) ** 2, 0) / pts.length) * 1.6);
+    gStr += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${col}" fill-opacity=".08" stroke="${col}" stroke-opacity=".25" stroke-width="1" stroke-dasharray="4,3"/>`;
+  });
+
+  // Points
+  points.forEach((p, idx) => {
+    const { x, y } = toSVG(p.px, p.py);
+    gStr += `<circle class="cl-pt" data-idx="${idx}" cx="${x}" cy="${y}" r="7" fill="${p.col}" fill-opacity=".88" stroke="#e8f0f8" stroke-width="1.5" style="cursor:pointer;transition:r .1s;"/>`;
+    gStr += `<text x="${x}" y="${y - 10}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7.5" fill="${p.col}" font-weight="600" pointer-events="none">${p.id}</text>`;
+  });
+
+  // Hint zoom
+  const hintStr = `<text x="${W-8}" y="${H-6}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="8" fill="#4a7aa5" opacity=".7">🖱 scroll to zoom · drag to pan</text>`;
+
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgEl.setAttribute('width', W);
+  svgEl.setAttribute('height', H);
+  svgEl.style.cssText = 'display:block;cursor:grab;';
+  svgEl.innerHTML = `<rect width="${W}" height="${H}" fill="#e8f0f8"/>${hintStr}<g id="cl-zoom-g">${gStr}</g>`;
+
+  const div = document.createElement('div');
+  div.style.cssText = 'width:100%;height:100%;position:relative;';
+  div.appendChild(svgEl);
+  plotEl.appendChild(div);
+
+  // ── Zoom / Pan ──
+  let zScale = 1, zTx = 0, zTy = 0;
+  let panning = false, pStart = {x:0,y:0}, tStart = {x:0,y:0};
+  const zg = svgEl.getElementById('cl-zoom-g');
+  const applyTransform = () => { zg.setAttribute('transform', `translate(${zTx},${zTy}) scale(${zScale})`); };
+
+  svgEl.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 0.87;
+    const pt = svgEl.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const loc = pt.matrixTransform(svgEl.getScreenCTM().inverse());
+    zTx = loc.x - (loc.x - zTx) * factor;
+    zTy = loc.y - (loc.y - zTy) * factor;
+    zScale *= factor;
+    applyTransform();
+  }, { passive: false });
+
+  svgEl.addEventListener('mousedown', e => {
+    if(e.target.classList.contains('cl-pt')) return;
+    panning = true; pStart={x:e.clientX,y:e.clientY}; tStart={x:zTx,y:zTy};
+    svgEl.style.cursor='grabbing';
+  });
+  svgEl.addEventListener('mousemove', e => {
+    if(!panning) return;
+    zTx = tStart.x + (e.clientX - pStart.x);
+    zTy = tStart.y + (e.clientY - pStart.y);
+    applyTransform();
+  });
+  svgEl.addEventListener('mouseup',    () => { panning=false; svgEl.style.cursor='grab'; });
+  svgEl.addEventListener('mouseleave', () => { panning=false; svgEl.style.cursor='grab'; });
+
+  // Double-click to reset
+  svgEl.addEventListener('dblclick', () => { zScale=1; zTx=0; zTy=0; applyTransform(); });
+
+  const svg = svgEl;
+
+  // Interactions
+  svg.querySelectorAll('.cl-pt').forEach(circle => {
+    const idx = +circle.dataset.idx;
+    const p = points[idx];
+
+    circle.addEventListener('mouseenter', e => {
+      circle.setAttribute('r', '10');
+      circle.setAttribute('stroke-width', '2.5');
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `<strong>${p.id}</strong><br>${p.sender} → ${p.recipient}<br>${p.date}<br><span style="opacity:.7">Cluster ${p.rank + 1}</span>`;
+      // Highlight card
+      document.querySelectorAll('.cl-card').forEach(c => c.classList.remove('cl-card-hl'));
+      document.getElementById('cl-card-' + p.id)?.classList.add('cl-card-hl');
+      document.getElementById('cl-card-' + p.id)?.scrollIntoView({ block: 'nearest' });
+    });
+
+    circle.addEventListener('mousemove', e => {
+      tooltip.style.left = (e.clientX + 14) + 'px';
+      tooltip.style.top  = (e.clientY - 10) + 'px';
+    });
+
+    circle.addEventListener('mouseleave', () => {
+      circle.setAttribute('r', '7');
+      circle.setAttribute('stroke-width', '1.5');
+      tooltip.style.display = 'none';
+      document.querySelectorAll('.cl-card').forEach(c => c.classList.remove('cl-card-hl'));
+    });
+
+    circle.addEventListener('click', () => {
+      openDrawer(allSorted, allSorted.findIndex(x => x.id === p.letterObj.id));
+    });
+  });
+}
+
+/* Rendu panneau latéral (liste par cluster) */
+function renderClusterSide(sideEl, clusterMeta, allSorted) {
+  sideEl.innerHTML = '';
+  clusterMeta.forEach(({ rank, col, bg, letters, kw }) => {
+    if (!letters.length) return;
+
+    const group = document.createElement('div');
+    group.className = 'cl-group';
+    group.style.borderLeft = `3px solid ${col}`;
+
+    const head = document.createElement('div');
+    head.className = 'cl-ghead';
+    head.style.background = bg;
+    head.innerHTML = `
+      <span class="cl-gbadge" style="background:${col}">C${rank + 1}</span>
+      <span class="cl-gtitle">Cluster ${rank + 1}</span>
+      <span class="cl-gcount">${letters.length} lettre${letters.length > 1 ? 's' : ''}</span>
+      <span style="font-size:.58rem;color:var(--n4);margin-left:.3rem;">▼</span>`;
+
+    const kwBar = document.createElement('div');
+    kwBar.className = 'cl-gkw';
+    kwBar.innerHTML = `<span style="color:var(--n4);letter-spacing:.1em;font-size:.5rem;">KEY TERMS · </span>${kw}`;
+
+    const cards = document.createElement('div');
+    cards.className = 'cl-gcards';
+
+    [...letters].sort((a, b) => acc(a).d.localeCompare(acc(b).d)).forEach(l => {
+      const a = acc(l);
+      const card = document.createElement('div');
+      card.className = 'cl-card';
+      card.id = 'cl-card-' + a.id;
+      card.innerHTML = `
+        <span class="cl-cid" style="color:${col}">${a.id}</span>
+        <span class="cl-croute">${a.s} <span style="color:var(--n3)">→</span> ${a.r}</span>
+        <span class="cl-cdate">${a.d}</span>`;
+      card.addEventListener('click', () => {
+        openDrawer(allSorted, allSorted.findIndex(x => x.id === l.id));
+      });
+      cards.appendChild(card);
+    });
+
+    let open = false;
+    kwBar.style.display  = 'none';
+    cards.style.display  = 'none';
+    head.querySelector('span:last-child').textContent = '▶';
+    head.addEventListener('click', () => {
+      open = !open;
+      kwBar.style.display  = open ? '' : 'none';
+      cards.style.display  = open ? '' : 'none';
+      head.querySelector('span:last-child').textContent = open ? '▼' : '▶';
+    });
+
+    group.appendChild(head);
+    group.appendChild(kwBar);
+    group.appendChild(cards);
+    sideEl.appendChild(group);
+  });
+}
+
+/* Rendu de l'onglet clusters — non-bloquant via setTimeout */
+function renderClusters() {
+  const plotEl = document.getElementById('cl-plot');
+  const sideEl = document.getElementById('cl-side');
+  const emptyEl = document.getElementById('cl-empty-plot');
+  const info = document.getElementById('cl-info');
+
+  if (!SEL.length) {
+    plotEl.innerHTML = '';
+    plotEl.appendChild(emptyEl);
+    emptyEl.innerHTML = '<span class="empty-ico">⬡</span><span>NO LETTERS SELECTIONNÉE</span>';
+    sideEl.innerHTML = '';
+    info.textContent = ''; info.dataset.hasResult = '';
+    return;
+  }
+
+  // État chargement
+  plotEl.innerHTML = '';
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'cl-empty-plot';
+  loadDiv.innerHTML = '<span class="empty-ico">⬡</span><span>CALCUL EN COURS…</span>';
+  plotEl.appendChild(loadDiv);
+  sideEl.innerHTML = '';
+  info.textContent = `${SEL.length} letters · calcul…`;
+  info.dataset.hasResult = '';
+
+  setTimeout(() => {
+    try {
+      const k    = Math.min(+document.getElementById('cl-k').value, SEL.length);
+      const lang = detectCorpusLang(SEL);
+      const tfidf = buildTFIDF(SEL, lang);
+
+      if (!tfidf) {
+        plotEl.innerHTML = '';
+        const e = document.createElement('div'); e.className = 'cl-empty-plot';
+        e.innerHTML = '<span class="empty-ico">⬡</span><span>INSUFFICIENT VOCABULARY — corpus too short or homogeneous</span>';
+        plotEl.appendChild(e);
+        info.textContent = ''; return;
+      }
+
+      const { labels, centroids } = clKmeans(tfidf.vectors, k);
+      const coords = clPCA2D(tfidf.vectors);
+
+      info.textContent = `Language: ${lang.toUpperCase()} · ${SEL.length} letters · ${k} clusters · PCA 2D`;
+      info.dataset.hasResult = '1';
+
+      // Groupes par cluster (triés par taille desc)
+      const groups = Array.from({ length: k }, () => []);
+      SEL.forEach((l, i) => groups[labels[i]].push(l));
+
+      const clusterMeta = groups
+        .map((letters, ki) => ({ ki, letters, kw: clTopTerms(centroids[ki], tfidf.terms) }))
+        .sort((a, b) => b.letters.length - a.letters.length)
+        .map(({ ki, letters, kw }, rank) => ({
+          ki, rank, letters, kw,
+          col: CL_PALETTE[rank % CL_PALETTE.length],
+          bg:  CL_PALETTE_BG[rank % CL_PALETTE_BG.length]
+        }));
+
+      // Map ki → rank pour la couleur
+      const kiToRank = {};
+      clusterMeta.forEach(({ ki, rank }) => kiToRank[ki] = rank);
+
+      // Points scatter
+      const allSorted = [...SEL].sort((a, b) => acc(a).d.localeCompare(acc(b).d));
+
+      const points = SEL.map((l, i) => {
+        const a = acc(l);
+        const rank = kiToRank[labels[i]];
+        return {
+          px: coords[i][0], py: coords[i][1],
+          col: CL_PALETTE[rank % CL_PALETTE.length],
+          rank,
+          id: a.id,
+          sender: a.s, recipient: a.r, date: a.d,
+          letterObj: l
+        };
+      });
+
+      renderScatterSVG(plotEl, points, clusterMeta, allSorted);
+      renderClusterSide(sideEl, clusterMeta, allSorted);
+
+    } catch(err) {
+      plotEl.innerHTML = '';
+      const e = document.createElement('div'); e.className = 'cl-empty-plot';
+      e.innerHTML = `<span class="empty-ico">⬡</span><span>ERREOR : ${err.message}</span>`;
+      plotEl.appendChild(e);
+      info.textContent = 'Échec du clustering';
+    }
+  }, 30);
+}
+
+
+loadCorpus().then(letters => {
+  ALL = letters; SEL = [...ALL];
+  // Init slider range dynamically from actual data
+  const yrs = ALL.map(l=>l.metadata.date.sent ? +l.metadata.date.sent.slice(0,4) : 0).filter(Boolean);
+  if (yrs.length) {
+    const ylo = Math.min(...yrs), yhi = Math.max(...yrs);
+    const slLo = document.getElementById('sl-lo');
+    const slHi = document.getElementById('sl-hi');
+    slLo.min = ylo; slLo.max = yhi; slLo.value = ylo;
+    slHi.min = ylo; slHi.max = yhi; slHi.value = yhi;
+    FS.ylo = ylo; FS.yhi = yhi;
+    document.getElementById('ylo').textContent = '—';
+    document.getElementById('yhi').textContent = '—';
+  }
+  render();
+  document.getElementById('corpus-count').textContent = `Corpus: ${ALL.length} indexed letters`;
+});
+</script>
+</body>
+</html>
