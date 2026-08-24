@@ -77,10 +77,6 @@ Create a `.env` file in the project root:
 GOOGLE_API_KEY=your_google_api_key_here
 ```
 
-> ⚠️ Never commit your `.env` file or API key to GitHub.
-
----
-
 ## Usage
 
 ### 1. Extract dates from folder names
